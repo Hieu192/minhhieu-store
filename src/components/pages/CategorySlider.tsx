@@ -1,0 +1,151 @@
+'use client';
+
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { Product } from '@/types/product';
+import ProductCard from '../product/ProductCard';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { useCart } from '@/context/Cartcontext';
+
+interface Props {
+  title: string;
+  slug: string;
+  products: Product[];
+}
+
+export default function CategorySlider({ title, slug, products }: Props) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isAnimating = useRef(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const { addToCart } = useCart();
+
+  const scrollByAmount = useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return 0;
+    const firstItem = container.querySelector('.product-slide-item') as HTMLElement;
+    if (!firstItem) return 0;
+
+    const style = window.getComputedStyle(firstItem.parentElement || firstItem);
+    const gap = parseFloat(style.gap || '16');
+    return firstItem.offsetWidth + gap;
+  }, []);
+
+  const scrollTo = useCallback((dir: 'left' | 'right') => {
+    const container = scrollRef.current;
+    if (!container || isAnimating.current) return;
+
+    const amount = scrollByAmount();
+    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+    const nextTarget =
+      dir === 'right' ? container.scrollLeft + amount : container.scrollLeft - amount;
+
+    // Xác định có phải đang reset về đầu/cuối không
+    const isResettingToStart = nextTarget > maxScrollLeft - 5;
+    const isResettingToEnd = nextTarget < 0;
+    const resetDuration = 800;
+    const normalDuration = 400;
+
+    const scrollDuration = isResettingToStart || isResettingToEnd ? resetDuration : normalDuration;
+
+    isAnimating.current = true;
+
+    // Cuộn lại về đầu nếu đã đến cuối
+    if (isResettingToStart) {
+      container.scrollTo({ left: 0, behavior: 'smooth' });
+    }
+    // Cuộn về cuối nếu đang ở đầu
+    else if (isResettingToEnd) {
+      container.scrollTo({ left: maxScrollLeft, behavior: 'smooth' });
+    }
+    // Cuộn bình thường
+    else {
+      container.scrollTo({ left: nextTarget, behavior: 'smooth' });
+    }
+
+    setTimeout(() => {
+      isAnimating.current = false;
+    }, scrollDuration);
+  }, [scrollByAmount]);
+
+  const autoScroll = useCallback(() => {
+    if (isHovered || isAnimating.current) return;
+    scrollTo('right');
+  }, [isHovered, scrollTo]);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(autoScroll, 4000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [autoScroll]);
+
+  const resetAutoScroll = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(autoScroll, 4000);
+  };
+
+  return (
+    <div className="relative sm:py-2">
+      <div className="flex justify-between items-center mb-2 md:mb-3">
+        <h2 className="text-lg md:text-xl font-semibold">{title.toUpperCase()}</h2>
+        <Link
+          href={`/products?category=${slug}`}
+          className="flex items-center space-x-1.5 text-lg text-blue-600 hover:bg-blue-50 hover:shadow-md transition-all duration-200 ease-in-out border border-blue-600 py-1 px-4 md:px-8 rounded-lg"
+        >
+          <span>Xem tất cả</span>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 8.25L21 12m0 0l-3.75 3.75M21 12H3" />
+          </svg>
+        </Link>
+      </div>
+
+      <div className="relative">
+        {/* Nút trái */}
+        <button
+          onClick={() => {
+            scrollTo('left');
+            resetAutoScroll();
+          }}
+          disabled={isAnimating.current}
+          className={`absolute z-20 left-0 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow transition ${
+            isAnimating.current ? 'bg-gray-300 cursor-not-allowed' : 'bg-white/80 hover:bg-white'
+          }`}
+        >
+          <ChevronLeft />
+        </button>
+
+        {/* Danh sách sản phẩm */}
+        <div
+          ref={scrollRef}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          className="flex overflow-x-auto overflow-y-visible scroll-smooth gap-4 no-scrollbar z-0 pt-1 pb-6"
+        >
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="product-slide-item relative z-10 w-[calc((100%_-_1rem)/2)] sm:w-[calc((100%_-_3rem)/4)] max-w-sm flex-shrink-0"
+            >
+              <ProductCard product={product} onAddToCart={addToCart} />
+            </div>
+          ))}
+        </div>
+
+        {/* Nút phải */}
+        <button
+          onClick={() => {
+            scrollTo('right');
+            resetAutoScroll();
+          }}
+          disabled={isAnimating.current}
+          className={`absolute z-20 right-0 top-1/2 transform -translate-y-1/2 p-2 rounded-full shadow transition ${
+            isAnimating.current ? 'bg-gray-300 cursor-not-allowed' : 'bg-white/80 hover:bg-white'
+          }`}
+        >
+          <ChevronRight />
+        </button>
+      </div>
+    </div>
+  );
+}

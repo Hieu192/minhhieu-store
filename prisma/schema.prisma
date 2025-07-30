@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+model category {
+  id        Int        @id @default(autoincrement())
+  name      String
+  slug      String     @unique(map: "Category_slug_key")
+  image     String?    @db.VarChar(255)
+  parentId  Int?
+  parent    category?  @relation("CategoryToChildren", fields: [parentId], references: [id])
+  children  category[] @relation("CategoryToChildren")
+  level     Int        @default(0) // cấp độ: 0 là gốc, 1 là con, 2 là cháu...
+  product   product[]
+
+  @@index([parentId])
+  @@index([level])
+}
+
+model product {
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique(map: "Product_slug_key")
+  image         String
+  price         Int
+  brand         String
+  rating        Float
+  reviews       Int
+  categoryId    Int
+  attributes    Json?
+  badges        Json?
+  createdAt     DateTime @default(now())
+  description   String?
+  gallery       Json?
+  originalPrice Int?
+  updatedAt     DateTime @updatedAt
+  category      category @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+
+  @@index([categoryId], map: "Product_categoryId_fkey")
+}

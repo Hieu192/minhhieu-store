@@ -12,6 +12,15 @@ const config: Config = {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      keyframes: {
+        'bounce-custom': {
+          '0%, 80%, 100%': { transform: 'translateY(0)' },
+          '40%': { transform: 'translateY(-8px)' },
+        },
+      },
+      animation: {
+        'bounce-custom': 'bounce-custom 1s infinite',
+      },
     },
   },
   plugins: [],
