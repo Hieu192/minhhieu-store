@@ -64,7 +64,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           .filter((slug) => slug !== product.slug) // bỏ chính nó
           .map((slug) => recent.find((p: Product) => p.slug === slug))
           .filter(Boolean)
-          .slice(0, 6); // chỉ lấy 6
+          .slice(0, 5); // chỉ lấy 5
 
         setRecentlyViewed(sortedRecent);
 
@@ -73,7 +73,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         const related = await relatedRes.json();
         const filteredRelated = related
           .filter((p: Product) => p.slug !== product.slug)
-          .slice(0, 6);
+          .slice(0, 5);
 
         setRelatedProducts(filteredRelated);
       } catch (err) {
@@ -280,7 +280,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       {recentlyViewed.length > 0 && (
         <div className="mt-12">
           <h2 className="text-lg font-semibold mb-4">Bạn đã xem gần đây</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {recentlyViewed.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={addToCart} />
             ))}
@@ -292,7 +292,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
       {relatedProducts.length > 0 && (
         <div className="mt-12">
           <h2 className="text-lg font-semibold mb-4">Sản phẩm liên quan</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {relatedProducts.map((product) => (
               <ProductCard key={product.id} product={product} onAddToCart={addToCart} />
             ))}

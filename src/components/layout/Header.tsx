@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -29,41 +29,62 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const mobileInputRef = useRef<HTMLInputElement>(null);
+  const autoClickRef = useRef<any>(null);
 
   const { getTotalItems } = useCart();
   const debounceRef = useRef<any>(null);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-    setShowSuggestions(true);
+const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const value = e.target.value;
+  setSearchQuery(value);
+  setShowSuggestions(true);
 
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  // ✅ Mỗi lần người dùng gõ, tự động click lại input để xóa gạch dưới
+  if (window.innerWidth >= 768 && inputRef.current) {
+    console.log('focus input desktop');
+    const input = inputRef.current;
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  } else if (window.innerWidth < 768 && mobileInputRef.current) {
+    const input = mobileInputRef.current;
+    input.focus();
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+  }
 
-    setLoading(true); // 👈 Đặt trước để không bị hiển thị "Không tìm thấy" quá sớm
+  if (debounceRef.current) clearTimeout(debounceRef.current);
+  setLoading(true);
 
-    debounceRef.current = setTimeout(() => {
-      if (value.trim().length === 0) {
+  debounceRef.current = setTimeout(() => {
+    if (value.trim().length === 0) {
+      setSearchResults([]);
+      setLoading(false);
+      return;
+    }
+
+    fetch(`/api/autocomplete?q=${encodeURIComponent(value)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setSearchResults(data);
+        setLoading(false);
+      })
+      .catch(() => {
         setSearchResults([]);
         setLoading(false);
-        return;
-      }
+      });
+  }, 400);
+};
 
-      fetch(`/api/autocomplete?q=${encodeURIComponent(value)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setSearchResults(data);
-          setLoading(false);
-        })
-        .catch(() => {
-          setSearchResults([]);
-          setLoading(false);
-        });
-    }, 300);
-  };
+
 
   const handleSearchSubmit = () => {
     setShowSuggestions(false);
+    setShowMobileSearch(false)
+    setSearchQuery('');
     router.push(`/products?search=${encodeURIComponent(searchQuery)}`);
   };
 
@@ -71,8 +92,17 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
     if (e.key === 'Enter') handleSearchSubmit();
   };
 
+  // ✅ Thêm logic khi click vào input
+  const handleInputClick = () => {
+    console.log('Input clicked');
+    // Bạn có thể thêm logic xử lý tại đây
+    // Ví dụ: commit text từ bộ gõ VNI, hiển thị dropdown, etc.
+  };
+
   const handleSuggestionClick = () => {
+    console.log('Suggestion clicked');
     setShowSuggestions(false);
+    setShowMobileSearch(false)
     setSearchQuery('');
   };
 
@@ -86,6 +116,40 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
       {label}
     </Link>
   );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  console.log('loading:::', loading);
+
+// useEffect(() => {
+//   const input = inputRef.current;
+//   if (!input) return;
+
+//   const handleCompositionEnd = () => {
+//     // Khi người dùng gõ xong (vni, telex...), bạn có thể xử lý tiếp nếu muốn
+//     console.log('Composition end, safe to proceed');
+//     // Không cần blur/focus gì ở đây
+//   };
+
+//   input.addEventListener('compositionend', handleCompositionEnd);
+//   return () => {
+//     input.removeEventListener('compositionend', handleCompositionEnd);
+//   };
+// }, []);
 
   return (
     <>
@@ -106,55 +170,74 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
           </Link>
 
           {/* Search */}
-          <div className="hidden md:flex flex-1 max-w-screen-sm mx-8 relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Tìm kiếm sản phẩm..."
-              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <Search
-              className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 cursor-pointer"
-              onClick={handleSearchSubmit}
-            />
+          <div ref={containerRef} className="hidden md:flex flex-1 max-w-screen-sm mx-8 relative">
+            <div className="relative w-full">
+              {searchQuery.trim() === '' && (
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-8 w-8 text-gray-400 pointer-events-none p-1" />
+              )}
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onKeyDown={handleKeyDown}
+                onClick={handleInputClick} // ✅ Thêm event onClick
+                placeholder="Tìm kiếm sản phẩm..."
+                className={`w-full ${searchQuery.trim() === '' ? 'pl-12 pr-3' : 'pl-3 pr-10'} py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+              />
+              {searchQuery.trim().split(/\s+/).length >= 2 && (
+                <X
+                  className="absolute right-12 top-2.5 h-5 w-5 text-gray-400 cursor-pointer"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSearchResults([]);
+                    setShowSuggestions(false);
+                  }}
+                />
+              )}
+              {searchQuery.trim() !== '' && (
+                <Search
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 text-gray-400 cursor-pointer hover:bg-gray-200 rounded-full p-1"
+                  onClick={handleSearchSubmit}
+                />
+              )}
 
-            {showSuggestions && searchQuery.trim() !== '' && (
-              <div className="absolute top-full rounded-md border border-gray-300 mt-1 w-full bg-white z-50 max-h-96 overflow-y-auto">
-                {loading ? (
-                  <div className="px-3 py-2 text-sm text-gray-500">Đang tìm kiếm...</div>
-                ) : searchResults.length > 0 ? (
-                  searchResults.map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/products/${product.slug}`}
-                      onClick={handleSuggestionClick}
-                      className="flex items-center shadow-sm mb-2 px-3 py-2 hover:bg-gray-100 text-sm text-gray-700"
-                    >
-                      <SafeImage
-                        src={product.image}
-                        alt={product.name}
-                        width={60}
-                        height={60}
-                        className="border rounded-md"
-                      />
-                      <div className="ml-3 flex-1">
-                        <span className="line-clamp-1">{product.name}</span>
-                        <span className="text-sm md:text-base font-bold text-red-600">
-                          {formatPrice(product.price)}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
-                ) : (
-                  // 👉 Chỉ hiển thị "Không tìm thấy" khi đã load xong và có từ khóa
-                  searchQuery.trim().length > 0 && !loading && (
-                    <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy sản phẩm</div>
-                  )
-                )}
-              </div>
-            )}
+              {showSuggestions && searchQuery.trim() !== '' && (
+                <div className="absolute top-full rounded-md border border-gray-300 mt-1 w-full bg-white z-50 max-h-96 overflow-y-auto">
+                  {loading ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">Đang tìm kiếm...</div>
+                  ) : searchResults.length > 0 ? (
+                    searchResults.map((product) => (
+                      <Link
+                        key={product.id}
+                        href={`/products/${product.slug}`}
+                        onClick ={handleSuggestionClick}
+                        className="flex items-center shadow-sm mb-2 px-3 py-2 hover:bg-gray-100 text-sm text-gray-700"
+                      >
+                        <SafeImage
+                          src={product.image}
+                          alt={product.name}
+                          width={60}
+                          height={60}
+                          className="border rounded-md"
+                        />
+                        <div className="ml-3 flex-1">
+                          <span className="line-clamp-1">{product.name}</span>
+                          <span className="text-sm md:text-base font-bold text-red-600">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+                      </Link>
+                    ))
+                  ) : (
+                    // 👉 Chỉ hiển thị "Không tìm thấy" khi đã load xong và có từ khóa
+                    searchQuery.trim().length > 0 && !loading && (
+                      <div className="px-3 py-2 text-sm text-gray-500">Không tìm thấy sản phẩm</div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Icons */}
@@ -214,24 +297,42 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
         </nav>
       </header>
 
-      {/* Mobile Search Overlay - Đặt bên ngoài header để không bị ảnh hưởng bởi sticky */}
+      {/* Mobile Search Overlay - Đặt bén ngoài header để không bị ảnh hưởng bởi sticky */}
       {showMobileSearch && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm" onClick={() => setShowMobileSearch(false)} />
           <div className="fixed inset-x-0 top-0 z-50 bg-white px-4 py-4 shadow-md border-b">
+            {searchQuery.trim() === '' && (
+              <Search className="absolute left-7 top-[50%] translate-y-[-50%] h-5 w-5 text-gray-400 pointer-events-none" />
+            )}
             <input
+              ref={mobileInputRef}
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
+              onClick={handleInputClick} // ✅ Thêm event onClick cho mobile
               placeholder="Tìm kiếm sản phẩm..."
               autoFocus
-              className="w-full pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className={`w-full ${searchQuery.trim() === '' ? 'pl-10 pr-3' : 'pl-3 pr-10'} py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
             />
-            <Search
-              className="absolute right-7 top-[50%] translate-y-[-50%] h-5 w-5 text-gray-400 cursor-pointer"
-              onClick={handleSearchSubmit}
-            />
+            {searchQuery.trim().split(/\s+/).length >= 2 && (
+              <X
+                className="absolute right-16 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 cursor-pointer"
+                onClick={() => {
+                  setSearchQuery('');
+                  setSearchResults([]);
+                  setShowSuggestions(false);
+                }}
+              />
+            )}
+
+            {searchQuery.trim() !== '' && (
+              <Search
+                className="absolute right-7 top-[50%] translate-y-[-50%] h-5 w-5 text-gray-400 cursor-pointer"
+                onClick={handleSearchSubmit}
+              />
+            )}
 
             {showSuggestions && searchQuery.trim() !== '' && (
               <div className="absolute top-full left-0 w-full bg-white z-50 max-h-64 overflow-y-auto shadow-lg">
@@ -242,18 +343,22 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
                     <Link
                       key={product.id}
                       href={`/products/${product.slug}`}
-                      onClick={() => {
-                        handleSuggestionClick();
-                        setShowMobileSearch(false); // Ẩn sau khi chọn
-                      }}
+                      onClick={handleSuggestionClick}
                       className="flex items-center ml-4 mr-4 bg-gray-100 rounded-lg shadow-sm p-2 mb-2 text-sm text-gray-800 hover:bg-gray-200"
                     >
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="w-10 h-10 object-cover rounded mr-3"
-                      />
-                      <span className="line-clamp-1">{product.name}</span>
+                        <SafeImage
+                          src={product.image}
+                          alt={product.name}
+                          width={60}
+                          height={60}
+                          className="border rounded-md mr-3"
+                        />
+                        <div className="ml-3 flex-1">
+                          <span className="line-clamp-1">{product.name}</span>
+                          <span className="text-sm md:text-base font-bold text-red-600">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
                     </Link>
                   ))
                 ) : (

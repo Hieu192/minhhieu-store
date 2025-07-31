@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider  = "mysql"
+  url       = env("DATABASE_URL")
 }
 
 
@@ -43,4 +43,25 @@ model product {
   category      category @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
 
   @@index([categoryId], map: "Product_categoryId_fkey")
+}
+
+
+// Thêm model News mới vào đây
+model News {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(255)
+  slug        String   @unique
+  image       String   @db.VarChar(255)
+  summary     String   @db.Text
+  content     String   @db.LongText // Dùng LongText nếu nội dung bài viết dài
+  date        DateTime @default(now()) // Ngày đăng bài
+  category    String   @db.VarChar(100) // Tên danh mục (có thể link sang bảng Category nếu muốn chuẩn hóa)
+  isFeatured  Boolean  @default(false) // Bài viết nổi bật
+  views       Int      @default(0)     // Số lượt xem
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([date])
+  @@index([isFeatured])
 }
