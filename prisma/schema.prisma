@@ -18,6 +18,7 @@ model category {
   children  category[] @relation("CategoryToChildren")
   level     Int        @default(0) // cấp độ: 0 là gốc, 1 là con, 2 là cháu...
   product   product[]
+  description String?    @db.Text    // mô tả danh mục
 
   @@index([parentId])
   @@index([level])
@@ -36,14 +37,17 @@ model product {
   attributes    Json?
   badges        Json?
   createdAt     DateTime @default(now())
-  description   String?
+  description   String?  @db.LongText
   gallery       Json?
   originalPrice Int?
   updatedAt     DateTime @updatedAt
   category      category @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+  status        ProductStatus   @default(Published)
 
   @@index([categoryId], map: "Product_categoryId_fkey")
 }
+
+
 
 
 // Thêm model News mới vào đây
@@ -60,8 +64,60 @@ model News {
   views       Int      @default(0)     // Số lượt xem
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  status      NewsStatus @default(Published)
 
   @@index([category])
   @@index([date])
   @@index([isFeatured])
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  name       String
+  phone      String
+  address    String
+  note       String?
+  total      Int
+  status     OrderStatus @default(pending)
+  createdAt  DateTime    @default(now())
+  paymentStatus PaymentStatus @default(pending)
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  productId Int
+  name      String
+  image     String?
+  quantity  Int
+  price     Int
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+}
+
+enum ProductStatus {
+  Published
+  Draft
+  Archived
+}
+
+enum NewsStatus {
+  Draft
+  Pending
+  Published
+  Archived
 }

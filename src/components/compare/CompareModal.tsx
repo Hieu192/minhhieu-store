@@ -98,8 +98,8 @@ export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
                   <SafeImage
                     src={product.image}
                     alt={product.name}
-                    width={200}
-                    height={200}
+                    // width={200}
+                    // height={200}
                   />
                   {/* <p className="text-sm line-clamp-2 mb-2">{product.name}</p> */}
                   <p className="text-gray-900 my-1 line-clamp-2 min-h-[2.5rem] text-sm">{product.name}</p>

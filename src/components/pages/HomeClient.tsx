@@ -7,10 +7,12 @@ import ProductCard from '@/components/product/ProductCard';
 import Link from 'next/link';
 import { Category } from '@/types/category';
 import { Product } from '@/types/product';
-import Image from 'next/image';
 import SafeImage from '@/ultis/SafeImage';
 import { capitalizeWords } from '@/ultis/helps';
 import HeadingWithLine from '../ui/HeadingWithLine';
+import HeroCarousel from '../layout/carousel';
+
+
 
 interface Props {
   categories: Category[];
@@ -23,24 +25,7 @@ export default function HomeClient({ categories, featuredProducts }: Props) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Thiết bị xây dựng chất lượng cao
-            </h1>
-            <p className="text-xl mb-8 text-blue-100">
-              Khám phá bộ sưu tập thiết bị vệ sinh, gạch men, và thiết bị bếp từ các thương hiệu hàng đầu
-            </p>
-            <Link
-              href="/products"
-              className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors inline-block"
-            >
-              Khám phá ngay
-            </Link>
-          </div>
-        </div>
-      </section>
+      <HeroCarousel />
 
       {/* Categories Section */}
       <section className="py-8">
@@ -48,8 +33,6 @@ export default function HomeClient({ categories, featuredProducts }: Props) {
           <HeadingWithLine>
             Danh mục sản phẩm
           </HeadingWithLine>
-
-          {/* 👇 Mobile horizontal scroll (<=640px) */}
 
           {/* 👇 Grid layout for tablet/desktop (>=640px) */}
           <div className="grid grid-cols-4 md:grid-cols-8 lg:grid-cols-8 auto-rows-auto overflow-hidden">
@@ -62,11 +45,11 @@ export default function HomeClient({ categories, featuredProducts }: Props) {
                 <SafeImage
                   src={category.image || "https://upload.wikimedia.org/wikipedia/commons/1/14/No_Image_Available.jpg?20200913095930"}
                   alt={category.name}
-                  width={200}
-                  height={200}
-                  className="rounded-full object-cover w-16 h-16 md:w-24 md:h-24 mx-auto mt-4"
+                  // width={200}
+                  // height={200}
+                  className="rounded-full object-contain w-16 h-16 md:w-24 md:h-24 mx-auto p-1 md:p-3"
                 />
-                <div className="text-center mt-2 mb-4 mx-2">
+                <div className="text-center mt-2 mb-2 md:mb-4 mx-2">
                   <h4 className="text-xs font-semibold">{capitalizeWords(category.name)}</h4>
                 </div>
               </Link>
@@ -86,7 +69,6 @@ export default function HomeClient({ categories, featuredProducts }: Props) {
               <ProductCard
                 key={product.id}
                 product={product}
-                onAddToCart={addToCart}
               />
             ))}
           </div>

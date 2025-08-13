@@ -90,7 +90,7 @@ export default function CategoryDropdown({ categories }: { categories: { id: num
 
   return (
     <div
-      className="relative group z-100"
+      className="relative group z-100 pb-2 hover:border-b-2 border-b-blue-600"
       // onMouseEnter={() => setIsDropdownOpen(true)}
       onMouseEnter={() => {
           if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
@@ -104,7 +104,7 @@ export default function CategoryDropdown({ categories }: { categories: { id: num
           setIsDropdownOpen(false);
         }}
     >
-      <div className="flex items-center text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer">
+      <div className="flex items-center text-sm font-medium text-gray-900 hover:text-blue-600 cursor-pointer ">
         <div onClick={() => handleProductClick()}>SẢN PHẨM</div>
         <svg
           className="w-4 h-4 ml-1"
@@ -117,7 +117,7 @@ export default function CategoryDropdown({ categories }: { categories: { id: num
       </div>
 
       {isDropdownOpen && (
-        <div className="absolute top-full mt-0 z-50 w-screen max-w-7xl translate-x-[-11%]">
+        <div className="absolute top-full mt-0.5 z-50 w-screen max-w-7xl translate-x-[-11%]">
           <div className="bg-white shadow-lg border rounded-lg flex h-[420px] w-full max-w-7xl overflow-hidden px-4">
             <div className="w-1/4 overflow-y-auto border-r p-4 space-y-2">
               {categories.map((cat) => (
@@ -205,8 +205,8 @@ function ProductMiniCard({ product, onClick }: Props) {
       <SafeImage
         src={product.image}
         alt={product.name}
-        width={220}
-        height={220}
+        // width={220}
+        // height={220}
       />
       <div className="text-sm font-semibold line-clamp-2 h-[2.5rem] mb-1 ml-2 text-gray-900">
         {product.name}

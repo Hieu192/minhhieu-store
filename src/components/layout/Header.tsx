@@ -109,7 +109,7 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const NavButton = ({ href, label }: { href: string; label: string }) => (
     <Link
       href={href}
-      className={`text-sm font-medium transition-colors ${
+      className={`text-sm font-medium transition-colors hover:border-b-2 border-b-blue-600 ${
         pathname === href ? 'text-blue-600' : 'text-gray-900 hover:text-blue-600'
       }`}
     >
@@ -132,8 +132,6 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
-
-  console.log('loading:::', loading);
 
 // useEffect(() => {
 //   const input = inputRef.current;
@@ -217,8 +215,8 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <SafeImage
                           src={product.image}
                           alt={product.name}
-                          width={60}
-                          height={60}
+                          // width={60}
+                          // height={60}
                           className="border rounded-md"
                         />
                         <div className="ml-3 flex-1">
@@ -285,14 +283,14 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:block border-t border-gray-200">
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 py-4">
-            <NavButton href="/" label="TRANG CHỦ" />
+        <nav className="hidden md:block border-gray-200">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 pt-1 min-h-9">
+            <NavButton href="/" label="TRANG CHỦ  🏠" />
             <CategoryDropdown categories={categories} />
             <CategoryDropdownTree categories={categoriesTree} />
-            <NavButton href="/news" label="TIN TỨC" />
-            <NavButton href="/about" label="VỀ CHÚNG TÔI" />
-            <NavButton href="/contact" label="LIÊN HỆ" />
+            <NavButton href="/news" label="TIN TỨC  📰" />
+            <NavButton href="/about" label="VỀ CHÚNG TÔI  ℹ️" />
+            <NavButton href="/contact" label="LIÊN HỆ  📞" />
           </div>
         </nav>
       </header>
@@ -349,8 +347,8 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         <SafeImage
                           src={product.image}
                           alt={product.name}
-                          width={60}
-                          height={60}
+                          // width={60}
+                          // height={60}
                           className="border rounded-md mr-3"
                         />
                         <div className="ml-3 flex-1">

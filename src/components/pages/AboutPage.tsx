@@ -17,7 +17,7 @@ export default function AboutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
           <div>
             <img
-              src="/api/placeholder/600/400"
+              src="/images/about-us.jpg"
               alt="Về chúng tôi"
               className="rounded-lg shadow-lg"
             />

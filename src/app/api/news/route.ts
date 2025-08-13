@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma'; // Đảm bảo đường dẫn này đúng tới prisma client của bạn
 import { createCategorySlug } from '@/ultis/helps'; // Đảm bảo đường dẫn này đúng
 
-const POSTS_PER_PAGE = 5;
+const POSTS_PER_PAGE = 6;
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || String(POSTS_PER_PAGE), 10);
 
   try {
-    let whereClause: any = {};
+    const whereClause: any = {};
     if (categorySlug) {
       const allCategoriesFromDb = await prisma.news.findMany({
         select: { category: true },

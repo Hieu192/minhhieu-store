@@ -3,13 +3,15 @@ import CategorySlider from './CategorySlider'; // Giữ riêng component Client 
 import { getCategories, getProductsByCategory } from '@/lib/api';
 import { Category } from '@/types/category';
 
-export default async function HomeCategorySliders() {
-  const categories = await getCategories();
+export default async function HomeCategorySliders({ categoriesTree, categories }: { categoriesTree: Category[] , categories: Category[] }) {
+  // const categories = await getCategories();
 
   const productsByCategory = await Promise.all(
     categories.map(async (cat: Category) => {
       const products = await getProductsByCategory(cat.slug);
-      return { slug: cat.slug, name: cat.name, id: cat.id, products };
+      const categoryInTree = categoriesTree.find((c) => c.id === cat.id);
+      const subCategories = categoryInTree?.children || [];
+      return { slug: cat.slug, name: cat.name, id: cat.id, products, subCategories };
     })
   );
 
@@ -22,6 +24,7 @@ export default async function HomeCategorySliders() {
             title={cat.name}
             slug={cat.slug}
             products={cat.products}
+            subCategories={cat.subCategories}
           />
         ) : null
       )}

@@ -93,8 +93,8 @@ export default function CompareBar() {
                 <SafeImage
                   src={product.image}
                   alt={product.name}
-                  width={60}
-                  height={60}
+                  // width={60}
+                  // height={60}
                 />
               </div>
               <p className="text-xs line-clamp-2 my-2">{product.name}</p>

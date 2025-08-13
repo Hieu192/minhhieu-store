@@ -6,4 +6,5 @@ export interface Category {
   level: number;
   parentId: string | null;
   children: Category[];
+  description: string | null;
 }

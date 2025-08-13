@@ -18,7 +18,7 @@ export default async function HomePage() {
           <h2 className="text-3xl font-bold text-center mb-8">
             Khám phá theo danh mục 2
           </h2>
-          <HomeCategorySliders />
+          <HomeCategorySliders categories={categories} categoriesTree={categories}/>
         </div>
       </section>
     </>

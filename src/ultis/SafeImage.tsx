@@ -3,34 +3,33 @@
 import Image, { ImageProps } from 'next/image';
 import { useState } from 'react';
 
-interface Props {
-  src: string;
+// Omit width & height để không cho phép truyền vào
+interface Props extends Omit<ImageProps, 'src' | 'alt' | 'width' | 'height'> {
+  src?: string;
   alt: string;
-  width: number;
-  height: number;
 }
 
-export default function SafeImage(props: ImageProps) {
-  const { src, alt, ...rest } = props;
-  const fallbackImage = '/images/no-image-available.png'; // Đường dẫn đến ảnh thay thế
+export default function SafeImage({ src, alt, ...rest }: Props) {
+  const fallbackImage = '/images/no-image-available.png';
   const [imgSrc, setImgSrc] = useState(src || fallbackImage);
 
   return (
-    <Image
-      src={imgSrc}
-      alt={alt}
-      loading="lazy"
-      // width={width}
-      // height={height}
-      className="object-cover"
-      onError={() => setImgSrc(fallbackImage)} // ⚠️ Không có tác dụng
-      onLoadingComplete={(img) => {
-        // Nếu ảnh không load được (bị lỗi), naturalWidth sẽ là 0
-        if (img.naturalWidth === 0) {
-          setImgSrc(fallbackImage);
-        }
-      }}      
-      {...rest}
-    />
+    <div className="relative w-full aspect-square overflow-hidden">
+      <Image
+        src={imgSrc}
+        alt={alt}
+        fill
+        draggable={false}
+        loading="lazy"
+        className="object-contain"
+        onError={() => setImgSrc(fallbackImage)}
+        onLoadingComplete={(img) => {
+          if (img.naturalWidth === 0) {
+            setImgSrc(fallbackImage);
+          }
+        }}
+        {...rest} // ✅ Lúc này sẽ không còn width/height lọt xuống
+      />
+    </div>
   );
 }

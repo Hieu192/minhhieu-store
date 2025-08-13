@@ -1,18 +1,18 @@
 'use client';
 
-import { ShoppingCart, Heart, Star, MessageSquareText } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
 import { Product } from '@/types/product';
 import Link from 'next/link';
 import { useState } from 'react';
-import Image from 'next/image';
 import SafeImage from '@/ultis/SafeImage';
 
 interface Props {
   product: Product;
-  onAddToCart: (product: Product) => void;
+    hasDraggedRef?: React.MutableRefObject<boolean>;
 }
 
-export default function ProductCard({ product, onAddToCart }: Props) {
+// export default function ProductCard({ product, onAddToCart }: Props) {
+export default function ProductCard({ product, hasDraggedRef }: Props) {
   const [hovered, setHovered] = useState(false);
 
   const formatPrice = (price: number) =>
@@ -23,21 +23,48 @@ export default function ProductCard({ product, onAddToCart }: Props) {
 
   return (
     <div
-      className="relative z-10 group bg-white border rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-transform duration-300 transform hover:-translate-y-1"
+      className="relative z-10 group bg-white border rounded-lg shadow-md hover:shadow-xl transition-transform duration-300 transform hover:-translate-y-1"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      draggable={false}
     >
-      <Link href={`/products/${product.slug}`} className="block">
-        <div className="relative overflow-hidden rounded-t-lg">
+      {/* % giảm giá */}
+      {product.originalPrice && product.price < product.originalPrice && (
+        <div className="absolute -top-2 left-4 z-20">
+          <div className="relative flex items-center min-w-[4.3rem] pl-2 py-1 bg-red-600 text-white font-semibold rounded-br-md rounded-tr-md rounded-bl-md before:content-[''] before:absolute before:left-0 before:top-0 before:w-0 before:h-0 before:border-b-[0.5rem] before:border-l-[0.5rem] before:border-b-red-800 before:border-l-transparent before:transform before:-translate-x-full">
+            <span className="text-[0.625rem]">Giảm  </span>
+            <span className="ml-1 text-xs">
+              {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
+            </span>
+          </div>
+        </div>
+      )}
+      <Link 
+        href={`/products/${product.slug}`} 
+        className="block p-3"
+        draggable={false}
+        onClick={(e) => {
+          if (hasDraggedRef?.current) {
+            e.preventDefault();
+            e.stopPropagation();
+            hasDraggedRef.current = false; // reset sau khi chặn
+          }
+        }}
+      >
+
+        <div className="relative overflow-hidden rounded-t-lg w-full flex items-center justify-center">
           <SafeImage
             src={product.image}
             alt={product.name}
-            width={400}
-            height={500}
+            sizes="(max-width: 768px) 100vw,
+                  (max-width: 1024px) 50vw,
+                  33vw"
           />
+
+
           
           {/* Badges */}
-          {product.badges?.length > 0 && (
+          {/* {product.badges?.length > 0 && (
             <div className="absolute top-2 left-2 flex flex-wrap gap-1">
               {product.badges.map((badge, index) => (
                 <span
@@ -56,17 +83,17 @@ export default function ProductCard({ product, onAddToCart }: Props) {
                 </span>
               ))}
             </div>
-          )}
+          )} */}
 
-          <button
+          {/* <button
             className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-md hover:bg-gray-50"
             onClick={(e) => e.preventDefault()}
           >
             <Heart className="h-4 w-4 text-gray-600" />
-          </button>
+          </button> */}
         </div>
 
-        <div className="p-1 relative md:py-2 md:px-3 md:pb-5 bg-gray-100">
+        <div className="relative pt-2">
           <h3 className="text-gray-900 mb-1 line-clamp-2 min-h-[2.5rem] md:min-h-[3rem] text-sm md:text-base">
             {product.name}
           </h3>
@@ -117,7 +144,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
       </Link>
 
       {/* Hover buttons — absolute bottom overlay */}
-      <div
+      {/* <div
         className={`
           absolute bottom-0 left-0 w-full px-2 py-2 z-10
           bg-white/80 backdrop-blur-sm transition-all duration-300
@@ -153,7 +180,7 @@ export default function ProductCard({ product, onAddToCart }: Props) {
           <MessageSquareText className="h-4 w-4 mr-1 text-gray-500" />
           Đánh giá
         </button>
-      </div>
+      </div> */}
     </div>
   );
 }

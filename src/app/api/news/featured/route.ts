@@ -1,24 +1,29 @@
 // app/api/news/featured/route.ts
-import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma'; // Đảm bảo đường dẫn này đúng
+import { NextResponse, NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
-export async function GET(request: Request) {
+// Sử dụng export này để buộc Next.js render route này một cách dynamic.
+// Điều này giải quyết lỗi "Dynamic server usage" vì API này cần xử lý các query parameter động.
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    // Sử dụng request.nextUrl.searchParams là cách an toàn hơn
+    // so với việc tạo URL mới từ request.url
+    const { searchParams } = request.nextUrl;
     const limitParam = searchParams.get('limit');
-    const limit = limitParam ? parseInt(limitParam, 10) : 4; // Mặc định lấy 4 bài nổi bật
+    const limit = limitParam ? parseInt(limitParam, 10) : 4;
 
     const featuredNews = await prisma.news.findMany({
       where: {
-        isFeatured: true, // Lọc các bài viết có isFeatured là true
+        isFeatured: true,
       },
       orderBy: {
-        date: 'desc', // Sắp xếp theo ngày giảm dần (mới nhất lên trước)
+        date: 'desc',
       },
-      take: limit, // Giới hạn số lượng bài viết
+      take: limit,
     });
 
-    // Chuyển đổi Date objects sang ISO strings trước khi gửi đi
     const formattedNews = featuredNews.map(p => ({
       ...p,
       date: p.date.toISOString(),

@@ -24,7 +24,8 @@ export default function AnimatedProductCard({ product, onAddToCart }: Props) {
       animate={inView ? { opacity: 1, scale: 1 } : {}}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <ProductCard product={product} onAddToCart={onAddToCart} />
+      {/* <ProductCard product={product} onAddToCart={onAddToCart} /> */}
+      <ProductCard product={product} />
     </motion.div>
   );
 }

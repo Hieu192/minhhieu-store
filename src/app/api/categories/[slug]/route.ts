@@ -6,6 +6,10 @@ export async function GET(
   { params }: { params: { slug: string } }
 ) {
   try {
+    if (params.slug === '.well-known') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+    
     const category = await prisma.category.findUnique({
       where: { slug: params.slug },
     });

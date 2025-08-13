@@ -10,8 +10,16 @@ export async function GET(req: Request, { params }: Params) {
   const { slug } = params;
 
   try {
+
+    if (slug === '.well-known') {
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 });
+    }
+
     const parentCategory = await prisma.category.findUnique({
       where: { slug },
+      select: {
+        id: true,
+      },
     });
 
     if (!parentCategory) return notFound();

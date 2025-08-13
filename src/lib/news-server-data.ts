@@ -24,7 +24,7 @@ export async function getPostsForStatic(options?: { categorySlug?: string; page?
 }> {
   const { categorySlug, page = 1, limit = POSTS_PER_PAGE } = options || {};
 
-  let whereClause: any = {};
+  const whereClause: any = {};
 
   if (categorySlug) {
     const categoryName = (await getAllCategoriesForStatic()).find(cat => createCategorySlug(cat) === categorySlug);

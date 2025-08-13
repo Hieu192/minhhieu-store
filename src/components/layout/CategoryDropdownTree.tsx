@@ -23,7 +23,7 @@ export default function CategoryDropdownTree({ categories }: Props) {
 
   return (
     <div
-      className="relative"
+      className="relative hover:border-b-2 border-b-blue-600"
       onMouseEnter={() => setDropdownOpen(true)}
       onMouseLeave={() => {
         setDropdownOpen(false);
@@ -41,7 +41,7 @@ export default function CategoryDropdownTree({ categories }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 bg-white shadow-lg border rounded-md z-50"
+            className="absolute top-full mt-0.5 left-0 bg-white shadow-lg border rounded-md z-50"
           >
             <div className="min-w-[220px] divide-y">
               {categories.map((cat, index) => (
@@ -52,6 +52,7 @@ export default function CategoryDropdownTree({ categories }: Props) {
                   onMouseLeave={() => setOpenIndex(null)}
                 >
                   <Link
+                    onClick={() => setDropdownOpen(false)}
                     href={`/${cat.slug}`}
                     className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 whitespace-nowrap"
                   >
@@ -73,6 +74,7 @@ export default function CategoryDropdownTree({ categories }: Props) {
                       >
                         {cat.children.map((child) => (
                           <Link
+                            onClick={() => setDropdownOpen(false)}
                             key={child.id}
                             href={`/${child.slug}`}
                             className="block px-4 py-2 hover:bg-gray-100 whitespace-nowrap"
