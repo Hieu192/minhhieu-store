@@ -20,14 +20,16 @@ export async function GET(req: Request) {
       where.OR = [
         {
           name: {
-            contains: search.toLowerCase(), // ❌ không có mode
+            contains: search.toLowerCase(),
+            mode: 'insensitive'
           },
         },
         {
           category: {
             is: {
               name: {
-                contains: search.toLowerCase(), // ❌ không có mode
+                contains: search.toLowerCase(),
+                mode: 'insensitive'
               },
             },
           },

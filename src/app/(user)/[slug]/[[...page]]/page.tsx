@@ -12,39 +12,39 @@ interface Props {
 }
 
 // ✨ THÊM HÀM generateStaticParams() để tạo trang tĩnh cho các danh mục
-export async function generateStaticParams() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const res = await fetch(`${baseUrl}/api/categories/slug-list`); // Giả định bạn có API này
+// export async function generateStaticParams() {
+//   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+//   const res = await fetch(`${baseUrl}/api/categories/slug-list`); // Giả định bạn có API này
 
-  if (!res.ok) {
-    return [];
-  }
+//   if (!res.ok) {
+//     return [];
+//   }
   
-  const data: { slugs: string[] } = await res.json();
+//   const data: { slugs: string[] } = await res.json();
 
-  if (!data || !Array.isArray(data.slugs)) {
-      return [];
-  }
-  const slugs = data.slugs;
-  const params = slugs.map((slug) => ({ slug }));
-  // const pagesToGenerate: { slug: string; page?: string[] }[] = [];
+//   if (!data || !Array.isArray(data.slugs)) {
+//       return [];
+//   }
+//   const slugs = data.slugs;
+//   const params = slugs.map((slug) => ({ slug }));
+//   // const pagesToGenerate: { slug: string; page?: string[] }[] = [];
 
-  const additionalPages = slugs.flatMap((slug) => [
-    { slug, page: ['page', '2'] },
-    { slug, page: ['page', '3'] },
-  ]);
-  // Tạo đường dẫn cho trang chính của từng danh mục
-  // slugs.forEach((item) => {
-  //   pagesToGenerate.push({ slug: item });
-  //   // Tùy chọn: tạo thêm đường dẫn cho các trang con (ví dụ trang 2, 3)
-  //   // Để Next.js pre-render các trang phổ biến ngay từ đầu
-  //   // Bổ sung các trang con
-  //   pagesToGenerate.push({ slug: item, page: ['page', '2'] });
-  //   pagesToGenerate.push({ slug: item, page: ['page', '3'] });
-  // });
+//   const additionalPages = slugs.flatMap((slug) => [
+//     { slug, page: ['page', '2'] },
+//     { slug, page: ['page', '3'] },
+//   ]);
+//   // Tạo đường dẫn cho trang chính của từng danh mục
+//   // slugs.forEach((item) => {
+//   //   pagesToGenerate.push({ slug: item });
+//   //   // Tùy chọn: tạo thêm đường dẫn cho các trang con (ví dụ trang 2, 3)
+//   //   // Để Next.js pre-render các trang phổ biến ngay từ đầu
+//   //   // Bổ sung các trang con
+//   //   pagesToGenerate.push({ slug: item, page: ['page', '2'] });
+//   //   pagesToGenerate.push({ slug: item, page: ['page', '3'] });
+//   // });
 
-  return [...params, ...additionalPages];
-}
+//   return [...params, ...additionalPages];
+// }
 
 // Generate metadata cho trang category
 export async function generateMetadata({ params }: { params: { slug: string } }) {

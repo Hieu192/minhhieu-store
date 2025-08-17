@@ -16,7 +16,7 @@ import CategoryDropdown from '@/components/layout/CategoryDropdown';
 import Image from 'next/image';
 import { Category } from '@/types/category';
 import SafeImage from '@/ultis/SafeImage';
-import { formatPrice } from '@/ultis/helps';
+import { formatPrice, handleFeatureClick } from '@/ultis/helps';
 import CategoryDropdownTree from './CategoryDropdownTree';
 
 export default function Header({ categories, categoriesTree, onToggleMobileMenu, isMenuOpen = false, onHeaderClick }: { categories: Category[], categoriesTree: Category[], onToggleMobileMenu?: (open: boolean) => void, isMenuOpen?: boolean, onHeaderClick?: () => void }) {
@@ -32,54 +32,50 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const mobileInputRef = useRef<HTMLInputElement>(null);
-  const autoClickRef = useRef<any>(null);
 
   const { getTotalItems } = useCart();
   const debounceRef = useRef<any>(null);
 
-const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const value = e.target.value;
-  setSearchQuery(value);
-  setShowSuggestions(true);
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setShowSuggestions(true);
 
-  // ✅ Mỗi lần người dùng gõ, tự động click lại input để xóa gạch dưới
-  if (window.innerWidth >= 768 && inputRef.current) {
-    console.log('focus input desktop');
-    const input = inputRef.current;
-    input.focus();
-    const len = input.value.length;
-    input.setSelectionRange(len, len);
-  } else if (window.innerWidth < 768 && mobileInputRef.current) {
-    const input = mobileInputRef.current;
-    input.focus();
-    const len = input.value.length;
-    input.setSelectionRange(len, len);
-  }
-
-  if (debounceRef.current) clearTimeout(debounceRef.current);
-  setLoading(true);
-
-  debounceRef.current = setTimeout(() => {
-    if (value.trim().length === 0) {
-      setSearchResults([]);
-      setLoading(false);
-      return;
+    // ✅ Mỗi lần người dùng gõ, tự động click lại input để xóa gạch dưới
+    if (window.innerWidth >= 768 && inputRef.current) {
+      const input = inputRef.current;
+      input.focus();
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
+    } else if (window.innerWidth < 768 && mobileInputRef.current) {
+      const input = mobileInputRef.current;
+      input.focus();
+      const len = input.value.length;
+      input.setSelectionRange(len, len);
     }
 
-    fetch(`/api/autocomplete?q=${encodeURIComponent(value)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setSearchResults(data);
-        setLoading(false);
-      })
-      .catch(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setLoading(true);
+
+    debounceRef.current = setTimeout(() => {
+      if (value.trim().length === 0) {
         setSearchResults([]);
         setLoading(false);
-      });
-  }, 400);
-};
+        return;
+      }
 
-
+      fetch(`/api/autocomplete?q=${encodeURIComponent(value)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setSearchResults(data);
+          setLoading(false);
+        })
+        .catch(() => {
+          setSearchResults([]);
+          setLoading(false);
+        });
+    }, 400);
+  };
 
   const handleSearchSubmit = () => {
     setShowSuggestions(false);
@@ -94,13 +90,11 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
   // ✅ Thêm logic khi click vào input
   const handleInputClick = () => {
-    console.log('Input clicked');
     // Bạn có thể thêm logic xử lý tại đây
     // Ví dụ: commit text từ bộ gõ VNI, hiển thị dropdown, etc.
   };
 
   const handleSuggestionClick = () => {
-    console.log('Suggestion clicked');
     setShowSuggestions(false);
     setShowMobileSearch(false)
     setSearchQuery('');
@@ -132,22 +126,6 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
-
-// useEffect(() => {
-//   const input = inputRef.current;
-//   if (!input) return;
-
-//   const handleCompositionEnd = () => {
-//     // Khi người dùng gõ xong (vni, telex...), bạn có thể xử lý tiếp nếu muốn
-//     console.log('Composition end, safe to proceed');
-//     // Không cần blur/focus gì ở đây
-//   };
-
-//   input.addEventListener('compositionend', handleCompositionEnd);
-//   return () => {
-//     input.removeEventListener('compositionend', handleCompositionEnd);
-//   };
-// }, []);
 
   return (
     <>
@@ -212,18 +190,29 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                         onClick ={handleSuggestionClick}
                         className="flex items-center shadow-sm mb-2 px-3 py-2 hover:bg-gray-100 text-sm text-gray-700"
                       >
-                        <SafeImage
-                          src={product.image}
-                          alt={product.name}
-                          // width={60}
-                          // height={60}
-                          className="border rounded-md"
-                        />
+                        <div className="w-20 h-20">
+                          <SafeImage
+                            src={product.image}
+                            alt={product.name}
+                            // width={60}
+                            // height={60}
+                            className="border"
+                          />
+                        </div>
+
                         <div className="ml-3 flex-1">
                           <span className="line-clamp-1">{product.name}</span>
-                          <span className="text-sm md:text-base font-bold text-red-600">
-                            {formatPrice(product.price)}
-                          </span>
+                          <div className="flex items-baseline space-x-2 mt-1">
+                            <span className="text-sm md:text-base font-bold text-red-600">
+                              {formatPrice(product.price)}
+                            </span>
+                            {/* Hiển thị giá gốc chỉ khi nó tồn tại */}
+                            {product.originalPrice && (
+                              <span className="text-xs md:text-sm text-gray-500 line-through">
+                                {formatPrice(product.originalPrice)}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </Link>
                     ))
@@ -240,7 +229,10 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
           {/* Icons */}
           <div className="flex items-center md:space-x-4 space-x-1">
-            <button className="p-2 text-gray-600 hover:text-blue-600 hidden md:inline-block">
+            <button 
+              className="p-2 text-gray-600 hover:text-blue-600 hidden md:inline-block"
+              onClick={() => handleFeatureClick("Sản phẩm yêu thích")}
+            >
               <Heart className="h-6 w-6" />
             </button>
 
@@ -263,12 +255,13 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               )}
             </Link>
 
-            <Link
-              href="/auth/login"
+            <button
+              // href="/auth/login"
               className="p-2 text-gray-600 hover:text-blue-600 hidden md:inline-block"
+              onClick={() => handleFeatureClick("Đăng nhập")}
             >
               <User className="h-6 w-6" />
-            </Link>
+            </button>
 
             {/* Mobile menu toggle */}
             <button
@@ -344,19 +337,39 @@ const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
                       onClick={handleSuggestionClick}
                       className="flex items-center ml-4 mr-4 bg-gray-100 rounded-lg shadow-sm p-2 mb-2 text-sm text-gray-800 hover:bg-gray-200"
                     >
-                        <SafeImage
-                          src={product.image}
-                          alt={product.name}
-                          // width={60}
-                          // height={60}
-                          className="border rounded-md mr-3"
-                        />
-                        <div className="ml-3 flex-1">
-                          <span className="line-clamp-1">{product.name}</span>
+                      <div className="w-16 h-16"> 
+                      <SafeImage
+                        src={product.image}
+                        alt={product.name}
+                        // width={60}
+                        // height={60}
+                        className="border mr-3"
+                      />
+                      </div>
+                      {/* <SafeImage
+                        src={product.image}
+                        alt={product.name}
+                        // width={60}
+                        // height={60}
+                        className="border rounded-md mr-3"
+                      /> */}
+                      <div className="ml-3 flex-1">
+                        <span className="line-clamp-1">{product.name}</span>
+                        <div className="flex items-baseline space-x-2 mt-1">
                           <span className="text-sm md:text-base font-bold text-red-600">
                             {formatPrice(product.price)}
                           </span>
+                          {/* Hiển thị giá gốc chỉ khi nó tồn tại */}
+                          {product.originalPrice && (
+                            <span className="text-xs md:text-sm text-gray-500 line-through">
+                              {formatPrice(product.originalPrice)}
+                            </span>
+                          )}
                         </div>
+                        {/* <span className="text-sm md:text-base font-bold text-red-600">
+                          {formatPrice(product.price)}
+                        </span> */}
+                      </div>
                     </Link>
                   ))
                 ) : (

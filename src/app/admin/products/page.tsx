@@ -218,7 +218,7 @@ export default function ProductsPage() {
         >
           <option value="">Tất cả danh mục</option>
           {categories.map(category => (
-            <option key={category.id} value={category.id}>{category.name}</option>
+            <option key={category.id} value={category.id} className='text-black'>{category.name}</option>
           ))}
         </select>
         <select
@@ -226,10 +226,10 @@ export default function ProductsPage() {
           onChange={handleStatusChange}
           className="px-4 py-2 rounded-lg bg-white/10 border border-white/20 focus:outline-none"
         >
-          <option value="All">Tất cả trạng thái</option>
-          <option value="Published">Published</option>
-          <option value="Archived">Archived</option>
-          <option value="Draft">Draft</option>
+          <option value="All" className='text-black'>Tất cả trạng thái</option>
+          <option value="Published" className='text-black'>Published</option>
+          <option value="Archived" className='text-black'>Archived</option>
+          <option value="Draft" className='text-black'>Draft</option>
         </select>
       </div>
 

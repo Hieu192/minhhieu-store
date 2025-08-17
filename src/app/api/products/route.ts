@@ -40,7 +40,6 @@ export async function GET(req: Request) {
         {
           name: {
             contains: search.toLowerCase(),
-            mode: 'insensitive',
           },
         },
         {
@@ -48,7 +47,6 @@ export async function GET(req: Request) {
             is: {
               name: {
                 contains: search.toLowerCase(),
-                mode: 'insensitive',
               },
             },
           },

@@ -75,32 +75,24 @@ export default function CompareBar() {
       fetchProducts();
   }, [compareSlugs]);
 
-  // useEffect(() => {
-  //   console.log('CompareBar mounted');
-  //   return () => console.log('CompareBar unmounted');
-  // }, []);
-
   if (!isVisible || selectedProducts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 p-3 md:p-4 ">
-      {/* <div className="bg-white border shadow-lg rounded-md w-full max-w-screen-lg flex items-center gap-4"> */}
-      <div className="inline-flex bg-white border shadow-lg rounded-md items-center gap-4">
-        <div className="flex gap-3 px-4 justify-center">
+    <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 p-2 md:p-4 ">
+      <div className="flex flex-col w-full md:w-auto md:flex-row bg-white border shadow-lg rounded-md items-center gap-4 pb-2">
+        <div className="flex flex-col w-full md:w-auto md:flex-row md:gap-3 px-4 justify-center">
           {selectedProducts.map((product) => (
-            <div key={product.id} className="relative w-56 h-28 flex-shrink-0 border rounded-md text-center my-3">
-              <div className="flex justify-center mt-2">
+            <div key={product.id} className="relative w-full h-24 md:w-56 md:h-28 flex-shrink-0 border rounded-md text-center mt-2 md:my-3">
+              <div className="flex w-16 md:w-20 justify-center mt-1 mx-auto">
                 <SafeImage
                   src={product.image}
                   alt={product.name}
-                  // width={60}
-                  // height={60}
                 />
               </div>
-              <p className="text-xs line-clamp-2 my-2">{product.name}</p>
+              <p className="text-sm line-clamp-2">{product.name}</p>
               <button
                 onClick={() => remove(product.slug)}
-                className="absolute top-1 right-1 bg-white rounded-full shadow p-1 border hover:bg-gray-100"
+                className="absolute top-1 left-1 md:left-auto md:right-1 bg-white rounded-full shadow p-1 border hover:bg-gray-100"
               >
                 <X className="h-4 w-4 text-gray-500" />
               </button>
@@ -112,7 +104,7 @@ export default function CompareBar() {
             <div
               key={i}
               onClick={() => setShowModal(true)}
-              className="w-56 h-28 flex items-center justify-center border rounded-md text-xs text-gray-400 bg-gray-50 transition whitespace-nowrap my-3"
+              className="w-full h-24 md:w-56 md:h-28 flex items-center justify-center border rounded-md text-xs text-gray-400 bg-gray-50 transition whitespace-nowrap mt-2 md:my-3"
             >
               + Chọn sản phẩm để so sánh
             </div>
@@ -129,7 +121,7 @@ export default function CompareBar() {
           {/* Hàng 2: 2 nút canh phải */}
           <div className="flex justify-end gap-3">
             <button
-              // onClick={() => setShowBar(false)}
+              onClick={() => setIsVisible(false)}
               className="px-3 py-2 text-sm rounded-md border hover:bg-gray-100 transition"
             >
               Thu gọn

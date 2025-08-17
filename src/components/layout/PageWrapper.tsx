@@ -6,6 +6,7 @@ import Footer from '@/components/layout/Footer'
 import { Category } from '@/types/category'
 import { ChevronRight, ChevronLeft } from 'lucide-react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { handleFeatureClick } from '@/ultis/helps'
 
 interface Props {
   categories: Category[]
@@ -81,12 +82,16 @@ export default function PageWrapper({ categories, categoriesTree, children }: Pr
           >
             <div className="pt-4">
               <div className="text-xl font-bold text-gray-800 border-b pb-4 text-center">
-                🏗 BuildMart
+                🏗 MinhHieu
               </div>
               {['/', '/products', '/news', '/about', '/contact', '/auth/login'].map((path, i) => (
                 <div key={i} className="flex justify-between items-center border-b ml-4">
                   <button
                     onClick={() => {
+                      if (path === '/auth/login') {
+                        handleFeatureClick('Đăng nhập');
+                        return;
+                      }
                       // handleClose()
                       // window.location.href = path
                       if (window.location.pathname + '/products' !== path) {

@@ -2,6 +2,8 @@ import parse, { DOMNode, Element } from 'html-react-parser';
 import Image from 'next/image';
 import slugify from 'slugify';
 import React from 'react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const formatPrice = (price: number) =>
 new Intl.NumberFormat('vi-VN', {
@@ -120,3 +122,27 @@ export function isValidVietnamPhone(phone: string): boolean {
 
   return mobileRegex.test(cleaned) || landlineRegex.test(cleaned);
 }
+
+export const handleFeatureClick = (feature: string) => {
+  // Loại bỏ tất cả các thông báo hiện có trước khi tạo thông báo mới
+  // toast.dismiss() không cần tham số sẽ đóng tất cả
+  toast.dismiss();
+
+  toast.info(
+    `Tính năng "${feature}" sẽ được cập nhật sau! Mong bạn thông cảm`, 
+    {
+      position: 'top-center',
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      style: {
+        backgroundColor: '#eff6ff', 
+        color: '#2563eb', 
+        border: '1px solid #2563eb', 
+      },
+    }
+  );
+};

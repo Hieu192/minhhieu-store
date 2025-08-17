@@ -12,7 +12,7 @@ model category {
   id        Int        @id @default(autoincrement())
   name      String
   slug      String     @unique(map: "Category_slug_key")
-  image     String?    @db.VarChar(255)
+  image     String    @db.VarChar(255)
   parentId  Int?
   parent    category?  @relation("CategoryToChildren", fields: [parentId], references: [id])
   children  category[] @relation("CategoryToChildren")

@@ -10,6 +10,9 @@ import React, {
 } from 'react';
 import { Product } from '@/types/product';
 import { useEffect } from 'react';
+import { toast } from 'react-toastify'; // Sửa đổi: import từ react-toastify
+import 'react-toastify/dist/ReactToastify.css';
+import { useRouter } from 'next/navigation';
 
 type CartItem = Product & { quantity: number };
 
@@ -37,6 +40,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
+
+  const router = useRouter();
 
   // ⭐️ [Quan trọng] Chỉ dùng một useEffect để tải dữ liệu ban đầu
   useEffect(() => {
@@ -81,6 +86,50 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
       return [...prev, { ...product, quantity }];
     });
+
+  // Tạo thông báo mới với giao diện hiện đại
+    toast.success(
+      <div className="flex items-center gap-4">
+        {/* Icon sản phẩm hoặc giỏ hàng */}
+        <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        <div className="flex-grow flex flex-col">
+          <span className="text-sm font-semibold text-gray-800">
+            Đã thêm vào giỏ hàng:
+          </span>
+          <span className="text-sm text-gray-600">{product.name}</span>
+        </div>
+
+        <button
+          onClick={() => {
+            toast.dismiss();
+            router.push('/cart');
+          }}
+          className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-medium hover:bg-blue-700 transition"
+        >
+          Xem giỏ hàng
+        </button>
+      </div>,
+      {
+        position: 'top-center',
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        style: {
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          padding: '12px',
+        },
+      }
+    );
   };
 
   const removeFromCart = (productId: number) => {

@@ -100,4 +100,8 @@ body {
   animation: pulse-icon 1s infinite ease-in-out;
 }
 
+.custom-toast-progress {
+  background-color: #2563eb !important;
+}
+
 

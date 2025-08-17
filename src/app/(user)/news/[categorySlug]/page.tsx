@@ -73,19 +73,19 @@ export default async function CategoryNewsPage({ params }: { params: { categoryS
     <div className="min-h-screen bg-gray-50 py-4 px-4 ">
       <main className="max-w-7xl mx-auto sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-4 bg-gray-200 p-4 rounded-lg">
-          <ol className="list-none flex space-x-1">
-            <li>
+        <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-4 bg-gray-200 p-3 rounded-lg">
+          <ol className="list-none flex flex-nowrap overflow-x-auto">
+            <li className='flex-shrink-0'>
               <Link href="/" className="hover:underline hover:text-blue-600">
-                Trang chủ
+                🏠Trang chủ
               </Link>
-              <span className="mx-1">/</span>
+              <span className="mx-2">/</span>
             </li>
-            <li>
+            <li className='flex-shrink-0'>
               <Link href="/news" className="hover:underline hover:text-blue-600">
                 Tin tức
               </Link>
-              <span className="mx-1">/</span>
+              <span className="mx-2">/</span>
             </li>
             <li className="text-blue-600">{categoryName}</li>
           </ol>

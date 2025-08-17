@@ -184,7 +184,6 @@ export async function POST(req: Request) {
     // Lấy tất cả các file từ trường 'gallery'
     const galleryFiles: File[] = formData.getAll('gallery_files') as File[];
 
-    console.log("galleryFiles::::", galleryFiles);
 
     if (!name || !price || !brand || !categoryId || !description || !thumbnailFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -201,44 +200,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid attributes format. Must be a valid JSON object.' }, { status: 400 });
     }
 
-    const thumbnailUrl: string = await uploadFileToCloudinary(thumbnailFile);
-
-    const galleryUploadPromises = galleryFiles.map(file => uploadFileToCloudinary(file));
-    const galleryUrls = await Promise.all(galleryUploadPromises);
-
-    const allImages = [thumbnailUrl, ...galleryUrls];
-    // Tải ảnh lên Cloudinary
-    // const arrayBuffer = await file.arrayBuffer();
-    // const buffer = Buffer.from(arrayBuffer);
-
-    // // Sử dụng Promise để đảm bảo quá trình upload hoàn tất và xử lý lỗi
-    // const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-    //     const uploadStream = cloudinary.uploader.upload_stream(
-    //         { folder: 'ecommerce/products' },
-    //         (error, result) => {
-    //             if (error || !result) {
-    //                 reject(error || new Error('Unknown Cloudinary upload error'));
-    //             } else {
-    //                 resolve(result);
-    //             }
-    //         }
-    //     );
-    //     uploadStream.end(buffer);
-    // });
-
-    // thumbnailUrl = uploadResult.secure_url;
-
-    // Tạo slug từ tên sản phẩm
+    // 1. Tạo slug và lưu sản phẩm vào database trước để có ID
     const slug = slugify(name, {
       lower: true,
       strict: true,
       locale: 'vi',
     });
 
-    const rating = 5; // ví dụ
-    const reviews = 0; // ví dụ
+    // Các trường ảnh tạm thời để tránh lỗi "not found"
+    const tempImage = "placeholder_image_url"; 
+    const tempGallery: string[] = [];
 
-    // Lưu sản phẩm vào database
     const product = await prisma.product.create({
       data: {
         name,
@@ -246,17 +218,63 @@ export async function POST(req: Request) {
         description,
         price,
         originalPrice,
-        image: thumbnailUrl,
+        image: tempImage, // Gán ảnh tạm thời
         brand,
-        gallery: allImages,
-        rating,
-        reviews,
+        gallery: tempGallery, // Gán mảng ảnh tạm thời
+        rating: 5,
+        reviews: 0,
         attributes: parsedAttributes,
         categoryId,
       },
     });
 
-    return NextResponse.json(product, { status: 201 });
+    // Lấy ID của sản phẩm vừa được tạo
+    const productId = product.id;
+
+    const thumbnailUrl: string = await uploadFileToCloudinary(thumbnailFile, 'products', productId.toString());
+
+    const galleryUploadPromises = galleryFiles.map(file => uploadFileToCloudinary(file, 'products', productId.toString()));
+    const galleryUrls = await Promise.all(galleryUploadPromises);
+
+    const allImages = [thumbnailUrl, ...galleryUrls];
+
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        image: thumbnailUrl,
+        gallery: allImages,
+      },
+    });
+
+    // thumbnailUrl = uploadResult.secure_url;
+
+    // Tạo slug từ tên sản phẩm
+    // const slug = slugify(name, {
+    //   lower: true,
+    //   strict: true,
+    //   locale: 'vi',
+    // });
+
+
+    // Lưu sản phẩm vào database
+    // const product = await prisma.product.create({
+    //   data: {
+    //     name,
+    //     slug,
+    //     description,
+    //     price,
+    //     originalPrice,
+    //     image: thumbnailUrl,
+    //     brand,
+    //     gallery: allImages,
+    //     rating,
+    //     reviews,
+    //     attributes: parsedAttributes,
+    //     categoryId,
+    //   },
+    // });
+
+    return NextResponse.json(updatedProduct, { status: 201 });
   } catch (error) {
     console.error('[POST /api/products] error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

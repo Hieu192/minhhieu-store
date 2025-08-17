@@ -102,14 +102,14 @@ export default async function PostDetailPage({ params }: { params: { categorySlu
           </ol>
         </nav> */}
 
-        <div className="md:text-base text-gray-600 mb-4 space-x-1 bg-gray-200 p-3 rounded-md">
-          <Link href="/" className="hover:underline hover:text-blue-600">Trang chủ</Link>
+        <div className="text-sm md:text-base text-gray-600 mb-4 space-x-2 bg-gray-200 p-3 rounded-md flex flex-nowrap overflow-x-auto">
+          <Link href="/" className="hover:underline hover:text-blue-600 flex-shrink-0">🏠Trang chủ</Link>
           <span className="mx-1">/</span>
-          <Link href="/news" className="hover:underline hover:text-blue-600">Tin tức</Link>
+          <Link href="/news" className="hover:underline hover:text-blue-600 flex-shrink-0">Tin tức</Link>
           <span className="mx-1">/</span>
-          <Link href={`/news/${params.categorySlug}`} className="hover:underline hover:text-blue-600">{categoryName}</Link>
+          <Link href={`/news/${params.categorySlug}`} className="hover:underline hover:text-blue-600 flex-shrink-0">{categoryName}</Link>
           <span className="mx-1">/</span>
-          <span className='text-blue-600'>{post.title}</span>
+          <span className='text-blue-600 flex-shrink-0'>{post.title}</span>
         </div>
 
         {/* Main Content Area */}

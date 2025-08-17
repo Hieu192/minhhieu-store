@@ -12,7 +12,6 @@ async function getProductData(id: string) {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/products/${id}`, { cache: 'no-store' });
     
-    console.log("test::::", res)
     if (!res.ok) {
       if (res.status === 404) {
         return null;

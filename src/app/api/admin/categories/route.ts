@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import slugify from 'slugify'
 import { v2 as cloudinary } from 'cloudinary';
 import type { UploadApiErrorResponse, UploadApiResponse } from 'cloudinary';
+import { uploadFileToCloudinary } from '@/ultis/cloudinary';
 
 // Lấy tất cả categories
 // GET /api/categories?level=0
@@ -20,7 +21,6 @@ export async function GET(req: Request) {
       const levelNum = Number(rawLevel)
       if (!Number.isNaN(levelNum)) {
         where.level = { equals: levelNum }
-        console.log('where:::', where)
       }
     }
 
@@ -53,37 +53,15 @@ export async function POST(req: Request) {
       ? Number(formData.get('parentId'))
       : null;
     const description = formData.get('description') as string;
-    const file = formData.get('image') as File | null;
+    const file = formData.get('image') as File;
 
-    let thumbnailUrl: string | null = null;
-
-    // Upload ảnh lên Cloudinary nếu có
-    if (file) {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-        cloudinary.uploader
-          .upload_stream({ folder: 'ecommerce/categories' }, (error: UploadApiErrorResponse | undefined, result: UploadApiResponse | undefined) => {
-            if (error) {
-              reject(error);
-            } else if (result) {
-              resolve(result);
-            } else {
-              reject(new Error('Unknown Cloudinary upload error'));
-            }
-          })
-          .end(buffer);
-      });
-
-      thumbnailUrl = uploadResult.secure_url;
-    }
+    const tempImage = "placeholder_image_url"; 
 
     const slug = slugify(name, {
       lower: true,
       strict: true, // bỏ ký tự đặc biệt
       locale: 'vi', // hỗ trợ tiếng Việt
-    })
+    });
 
     // Lưu vào database
     const category = await prisma.category.create({
@@ -93,8 +71,15 @@ export async function POST(req: Request) {
         slug,
         parentId,
         description,
-        image: thumbnailUrl,
+        image: tempImage,
       },
+    });
+    const thumbnailUrl: string = await uploadFileToCloudinary(file, 'categories', category.id.toString());
+
+    // Cập nhật lại category với thumbnailUrl
+    await prisma.category.update({
+      where: { id: category.id },
+      data: { image: thumbnailUrl },
     });
 
     return NextResponse.json(category);

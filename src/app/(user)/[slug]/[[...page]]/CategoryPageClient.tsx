@@ -14,8 +14,8 @@ import SafeImage from '@/ultis/SafeImage';
 
 interface Props {
   slug: string;
-  category: Category;
-  subcategories: Category[];
+  category: Category ;
+  subcategories: Category [];
   breadcrumb: { name: string; slug: string }[];
   products: Product[];
   totalProducts: number;
@@ -73,15 +73,15 @@ export default function CategoryPageClient({
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-4 ">
       <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div className="md:text-base text-gray-600 mb-4 space-x-1 bg-gray-200 p-3 rounded-md">
-          <Link href="/" className="hover:underline">Trang chủ</Link>
+        <div className="text-sm md:text-base text-gray-600 mb-4 bg-gray-200 p-3 rounded-md flex flex-nowrap overflow-x-auto">
+          <Link href="/" className="hover:underline flex-shrink-0">🏠Trang chủ</Link>
           {breadcrumb.map((item, index) => (
-            <span key={item.slug}>
-              <span className="mr-1">/</span>
+            <span key={item.slug} className="flex-shrink-0">
+              <span className="mx-2">/</span>
               {index === breadcrumb.length - 1 ? (
                 <span className="text-blue-600">{capitalizeWords(item.name)}</span>
               ) : (
-                <Link href={`/${item.slug}`} className="hover:underline">
+                <Link href={`/${item.slug}`} className="hover:underline flex-shrink-0">
                   {capitalizeWords(item.name)}
                 </Link>
               )}

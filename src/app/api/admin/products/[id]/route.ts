@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import slugify from 'slugify';
-import { deleteFileFromCloudinary, uploadFileToCloudinary } from '@/ultis/cloudinary';
+import { deleteFileFromCloudinary, deleteFolderFromCloudinary, uploadFileToCloudinary } from '@/ultis/cloudinary';
 
 
 export async function GET(
@@ -140,7 +140,7 @@ export async function PATCH(
     let newThumbnailUrl: string | null = null;
     const thumbnailFile = formData.get('image') as File | null;
     if (thumbnailFile && thumbnailFile.name) {
-      newThumbnailUrl = await uploadFileToCloudinary(thumbnailFile);
+      newThumbnailUrl = await uploadFileToCloudinary(thumbnailFile, 'products', productId.toString());
       // 2. Cập nhật URL ảnh thumbnail mới vào updateData
       updateData.image = newThumbnailUrl;
     }
@@ -160,7 +160,7 @@ export async function PATCH(
     }
 
     if (newGalleryFiles && newGalleryFiles.length > 0) {
-      const uploadPromises = newGalleryFiles.map(file => uploadFileToCloudinary(file));
+      const uploadPromises = newGalleryFiles.map(file => uploadFileToCloudinary(file, 'products', productId.toString()));
       const uploadedUrls = await Promise.all(uploadPromises);
       allGalleryUrls = [...oldGalleryUrls, ...uploadedUrls];
     }
@@ -209,22 +209,24 @@ export async function DELETE(
     } 
 
     // Lấy URL ảnh thumbnail và gallery
-    const imageUrlsToDelete = new Set<string>();
-    if (productToDelete.image) {
-      imageUrlsToDelete.add(productToDelete.image);
-    }
-    if (productToDelete.gallery && Array.isArray(productToDelete.gallery) && productToDelete.gallery.length > 0) {
-      // Bỏ gán kiểu (url: string)
-      productToDelete.gallery.forEach((url) => { 
-        // Kiểm tra xem url có phải là string không trước khi thêm vào Set
-        if (typeof url === 'string') {
-          imageUrlsToDelete.add(url);
-        }
-      });
-    }
+    // const imageUrlsToDelete = new Set<string>();
+    // if (productToDelete.image) {
+    //   imageUrlsToDelete.add(productToDelete.image);
+    // }
+    // if (productToDelete.gallery && Array.isArray(productToDelete.gallery) && productToDelete.gallery.length > 0) {
+    //   // Bỏ gán kiểu (url: string)
+    //   productToDelete.gallery.forEach((url) => { 
+    //     // Kiểm tra xem url có phải là string không trước khi thêm vào Set
+    //     if (typeof url === 'string') {
+    //       imageUrlsToDelete.add(url);
+    //     }
+    //   });
+    // }
 
-    // Chuyển Set về mảng để sử dụng với Promise.all
-    const urlsToDeleteArray = Array.from(imageUrlsToDelete);
+    // // Chuyển Set về mảng để sử dụng với Promise.all
+    // const urlsToDeleteArray = Array.from(imageUrlsToDelete);
+
+    await deleteFolderFromCloudinary('products', productId.toString());
 
     // Xóa sản phẩm khỏi cơ sở dữ liệu
     await prisma.product.delete({
@@ -232,16 +234,16 @@ export async function DELETE(
     });
 
     // Xóa tất cả các ảnh liên quan khỏi Cloudinary
-    if (urlsToDeleteArray.length > 0) {
-      try {
-        await Promise.all(
-          urlsToDeleteArray.map(url => deleteFileFromCloudinary(url))
-        );
-      } catch (cloudinaryError) {
-        // Log lỗi nhưng không chặn việc xóa sản phẩm thành công
-        console.error('Failed to delete images from Cloudinary:', cloudinaryError);
-      }
-    }
+    // if (urlsToDeleteArray.length > 0) {
+    //   try {
+    //     await Promise.all(
+    //       urlsToDeleteArray.map(url => deleteFileFromCloudinary(url, 'products'))
+    //     );
+    //   } catch (cloudinaryError) {
+    //     // Log lỗi nhưng không chặn việc xóa sản phẩm thành công
+    //     console.error('Failed to delete images from Cloudinary:', cloudinaryError);
+    //   }
+    // }
     
     return NextResponse.json({ message: 'Product deleted successfully' }, { status: 200 });
 

@@ -136,22 +136,6 @@ export default function AdminNews() {
     setPagination(prev => ({ ...prev, currentPage: 1 }))
   }
 
-  // Hàm xử lý khi mở modal chỉnh sửa
-  const handleEdit = (newsItem: NewsItem) => {
-    setSelectedNews(newsItem)
-    setEditFormData({
-      title: newsItem.title,
-      slug: newsItem.slug,
-      image: newsItem.image,
-      summary: newsItem.summary,
-      content: newsItem.content,
-      category: newsItem.category,
-      isFeatured: newsItem.isFeatured,
-      status: newsItem.status,
-    })
-    setShowEditModal(true)
-  }
-
   // Hàm xử lý lưu thay đổi
   const handleSave = async () => {
     if (!selectedNews || !editFormData) return
@@ -186,7 +170,7 @@ export default function AdminNews() {
     if (!window.confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) return
 
     try {
-      const response = await fetch(`/api/news?id=${id}`, {
+      const response = await fetch(`/api/admin/news/${id}`, {
         method: 'DELETE',
       })
 

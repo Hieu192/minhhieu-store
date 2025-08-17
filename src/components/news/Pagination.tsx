@@ -12,48 +12,54 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
     return null;
   }
 
-  const pages = [];
-  const pageRange = 2; // Số trang hiển thị ở mỗi bên trang hiện tại
+  const pages: (number | string)[] = [];
 
-  // Logic mới để tạo mảng phân trang
-  const startPage = Math.max(1, currentPage - pageRange);
-  const endPage = Math.min(totalPages, currentPage + pageRange);
-
-  // Thêm trang đầu tiên và dấu ba chấm nếu cần
-  if (startPage > 1) {
-    pages.push(1);
-    if (startPage > 2) {
-      pages.push('...');
+  if (totalPages <= 7) {
+    // Nếu tổng số trang ít thì hiển thị hết
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
     }
-  }
-
-  // Thêm các trang trong khoảng giữa
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
-  }
-
-  // Thêm dấu ba chấm và trang cuối cùng nếu cần
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) {
-      pages.push('...');
+  } else {
+    if (currentPage <= 4) {
+      // Gần đầu
+      pages.push(1, 2, 3, 4, 5, 6, '...', totalPages);
+    } else if (currentPage >= totalPages - 3) {
+      // Gần cuối
+      pages.push(1, '...', totalPages - 5, totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      // Ở giữa
+      pages.push(
+        1,
+        '...',
+        currentPage - 2,
+        currentPage - 1,
+        currentPage,
+        currentPage + 1,
+        currentPage + 2,
+        '...',
+        totalPages
+      );
     }
-    pages.push(totalPages);
   }
 
   return (
     <nav className="flex justify-center mt-8">
       <ul className="flex flex-wrap justify-center space-x-2">
         {/* Nút "Trước" */}
-        {currentPage > 1 && (
-          <li className="mb-4">
+        <li className="mb-4">
+          {currentPage > 1 ? (
             <Link
               href={`${baseUrl}${currentPage - 1 === 1 ? '' : `/page/${currentPage - 1}`}`}
               className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
             >
               Trước
             </Link>
-          </li>
-        )}
+          ) : (
+            <span className="px-4 py-2 border rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+              Trước
+            </span>
+          )}
+        </li>
 
         {/* Các nút số trang */}
         {pages.map((page, index) => (
@@ -64,7 +70,9 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
               <Link
                 href={`${baseUrl}${page === 1 ? '' : `/page/${page}`}`}
                 className={`px-4 py-2 border rounded-md ${
-                  page === currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'
+                  page === currentPage
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
                 }`}
               >
                 {page}
@@ -74,16 +82,20 @@ export default function Pagination({ currentPage, totalPages, baseUrl }: Paginat
         ))}
 
         {/* Nút "Sau" */}
-        {currentPage < totalPages && (
-          <li className="mb-4">
+        <li className="mb-4">
+          {currentPage < totalPages ? (
             <Link
               href={`${baseUrl}/page/${currentPage + 1}`}
               className="px-4 py-2 border rounded-md text-gray-700 hover:bg-gray-100"
             >
               Sau
             </Link>
-          </li>
-        )}
+          ) : (
+            <span className="px-4 py-2 border rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+              Sau
+            </span>
+          )}
+        </li>
       </ul>
     </nav>
   );

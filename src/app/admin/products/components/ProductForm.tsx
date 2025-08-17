@@ -122,47 +122,6 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
     setCrop(centeredCrop);
   };
 
-  // const createCroppedImage = () => {
-  //   console.log("createCroppedImage called with completedCrop:::");
-  //   if (!completedCrop || !imgRef.current || !previewCanvasRef.current) {
-  //     return;
-  //   }
-  //   console.log("createCroppedImage called with completedCrop 1:::");
-
-  //   const image = imgRef.current;
-  //   const canvas = previewCanvasRef.current;
-  //   const scaleX = image.naturalWidth / image.width;
-  //   const scaleY = image.naturalHeight / image.height;
-
-  //   const offscreen = new OffscreenCanvas(
-  //     completedCrop.width * scaleX,
-  //     completedCrop.height * scaleY
-  //   );
-  //   const ctx = offscreen.getContext('2d');
-  //   if (!ctx) return;
-  //   console.log("createCroppedImage called with completedCrop 2:::");
-  //   ctx.drawImage(
-  //     image,
-  //     completedCrop.x * scaleX,
-  //     completedCrop.y * scaleY,
-  //     completedCrop.width * scaleX,
-  //     completedCrop.height * scaleY,
-  //     0,
-  //     0,
-  //     completedCrop.width * scaleX,
-  //     completedCrop.height * scaleY
-  //   );
-
-  //   offscreen.convertToBlob({ type: 'image/jpeg', quality: 0.9 }).then((blob) => {
-  //     const croppedFile = new File([blob], "thumbnail.jpg", { type: 'image/jpeg' });
-  //     setThumbnailFile(croppedFile);
-  //     setThumbnailPreview(URL.createObjectURL(croppedFile));
-  //     setIsCropping(false); // Tắt chế độ cắt ảnh sau khi đã xử lý
-  //   });
-
-  //   console.log("createCroppedImage called with completedCrop 3:::");
-  // };
-
   const createCroppedImage = () => {
     if (!completedCrop || !imgRef.current) {
         return;
@@ -279,7 +238,6 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
       const product = await res.json();
       setSuccess(`Sản phẩm ${product.name} đã được ${mode === 'add' ? 'thêm' : 'cập nhật'} thành công!`);
 
-      console.log("formData::::", Object.fromEntries(formData.entries()))
       router.refresh();
       setTimeout(() => {
         router.push('/admin/products');
@@ -366,7 +324,7 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
           >
             <option value={0}>-- Chọn danh mục --</option>
             {categories.map(category => (
-              <option key={category.id} value={category.id}>{category.name}</option>
+              <option key={category.id} value={category.id} className='text-black'>{category.name}</option>
             ))}
           </select>
         </div>
@@ -375,9 +333,6 @@ export default function ProductForm({ mode, initialData }: ProductFormProps) {
         <div>
           <label className="block mb-1">Ảnh đại diện</label>
           <input type="file" accept="image/*" onChange={handleThumbnailChange} className="w-full" />
-          {/* {thumbnailPreview && (
-            <img src={thumbnailPreview} alt="Thumbnail" className="mt-2 h-32 rounded-lg object-cover" />
-          )} */}
           {thumbnailPreview && (
             <div className="mt-2">
               {/* Chỉ hiển thị công cụ cắt khi isCropping là true */}

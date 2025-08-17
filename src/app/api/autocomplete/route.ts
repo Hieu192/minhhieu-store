@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         slug: true,
         price: true,
         image: true,
+        originalPrice: true,
       },
     });
 

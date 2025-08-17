@@ -144,8 +144,6 @@ export default function ProductsClientPage({
     return () => controller.abort();
   }, [searchParams, limit, page]);
 
-  console.log('Product :::', products);
-
   return (
     <>
       <div className="lg:hidden mb-4">
@@ -308,7 +306,7 @@ export default function ProductsClientPage({
               {Array.from({ length: totalPages }).map((_, i) => {
                 const p = i + 1;
                 // Hiển thị 1 trang trước và 1 trang sau trang hiện tại
-                if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                if (p === 1 || p === totalPages || (p >= page - 3 && p <= page + 3)) {
                   return (
                     <button
                       key={p}
@@ -319,13 +317,69 @@ export default function ProductsClientPage({
                     </button>
                   );
                 }
+
+                if (page <= 5 && p <= 8) {
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`px-3 py-1 border text-xs md:text-base ${
+                        page === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                }
+
+                if (page >= totalPages - 4 && p >= totalPages - 7) {
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`px-3 py-1 border text-xs md:text-base ${
+                        page === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                }
+
+                if (p >= page - 3 && p <= page + 3) {
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      className={`px-3 py-1 border text-xs md:text-base ${
+                        page === p ? 'bg-blue-600 text-white' : 'bg-white text-gray-600'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                }
                 // Hiển thị dấu ... nếu cần
+                // if (
+                //   (p === page - 4 && page > 4) ||
+                //   (p === page + 4 && page < totalPages - 4)
+                // ) {
+                //   return (
+                //     <span key={p} className="px-3 py-1 border text-xs md:text-base bg-white text-gray-600">
+                //       ...
+                //     </span>
+                //   );
+                // }
+
                 if (
-                  (p === page - 2 && page > 3) ||
-                  (p === page + 2 && page < totalPages - 2)
+                  (p === 2 && page > 5) || // Sau trang 1
+                  (p === totalPages - 1 && page < totalPages - 4) // Trước trang cuối
                 ) {
                   return (
-                    <span key={p} className="px-3 py-1 border text-xs md:text-base bg-white text-gray-600">
+                    <span
+                      key={p}
+                      className="px-3 py-1 border text-xs md:text-base bg-white text-gray-600"
+                    >
                       ...
                     </span>
                   );

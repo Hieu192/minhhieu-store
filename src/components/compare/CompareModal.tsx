@@ -38,7 +38,7 @@ export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
       setCategorySlug(currentCategory);
       // Gọi API sản phẩm theo danh mục
       setLoading(true);
-      fetch(`/api/products?category=${currentCategory}&limit=20&offset=0`)
+      fetch(`/api/products?category=${currentCategory}&limit=20&offset=0`) // đổi thành tìm theo category cha chứ không phải category con
         .then((res) => res.json())
         .then((data) => {
           setProducts(data || []);

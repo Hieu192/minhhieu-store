@@ -79,21 +79,21 @@ export default async function NewsPaginatedPage({ params }: { params: { page: st
   return (
     <main className="max-w-7xl mx-auto px-4 py-10">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-4 bg-gray-200 p-4 rounded-lg">
-        <ol className="list-none flex space-x-1">
-          <li>
+      <nav aria-label="Breadcrumb" className="text-sm text-gray-500 mb-4 bg-gray-200 p-3 rounded-lg">
+        <ol className="list-none flex flex-nowrap overflow-x-auto">
+          <li className='flex-shrink-0'>
             <Link href="/" className="hover:underline">
-              Trang chủ
+              🏠Trang chủ
             </Link>
-            <span className="mx-1">/</span>
+            <span className="mx-2">/</span>
           </li>
-          <li>
+          <li className='flex-shrink-0'>
             <Link href="/news" className="hover:underline">
               Tin tức
             </Link>
-            <span className="mx-1">/</span>
+            <span className="mx-2">/</span>
           </li>
-          <li>Trang {pageNumber}</li>
+          <li className='flex-shrink-0'>Trang {pageNumber}</li>
         </ol>
       </nav>
 

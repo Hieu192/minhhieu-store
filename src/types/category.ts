@@ -4,7 +4,7 @@ export interface Category {
   slug: string;
   image: string;
   level: number;
-  parentId: string | null;
+  parentId: number | null;
   children: Category[];
   description: string | null;
 }

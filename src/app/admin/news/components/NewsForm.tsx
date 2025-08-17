@@ -1,8 +1,10 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
+import { useState, useEffect, ChangeEvent, FormEvent, useRef } from 'react'
 import { NewsStatus } from '@prisma/client'
+import ReactCrop, { centerCrop, makeAspectCrop, Crop, PixelCrop } from 'react-image-crop'
+import 'react-image-crop/dist/ReactCrop.css';
 
 // Giao diện cho props của component, xác định chế độ 'add' hoặc 'edit'.
 interface NewsFormProps {
@@ -19,6 +21,9 @@ interface NewsFormState {
   content: string
   isFeatured: boolean
 }
+
+const ASPECT_RATIO = 5/3;
+const MIN_DIMENSION = 150;
 
 export default function NewsForm({ mode, initialData }: NewsFormProps) {
   const router = useRouter()
@@ -43,6 +48,11 @@ export default function NewsForm({ mode, initialData }: NewsFormProps) {
   const [success, setSuccess] = useState<string | null>(null)
   // State để lưu trữ danh sách danh mục fetched từ API.
   const [categories, setCategories] = useState<any[]>([])
+
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   // Sử dụng useEffect để tải dữ liệu ban đầu khi ở chế độ 'edit'.
   useEffect(() => {
@@ -74,8 +84,63 @@ export default function NewsForm({ mode, initialData }: NewsFormProps) {
     if (file) {
       setThumbnailFile(file)
       setThumbnailPreview(URL.createObjectURL(file))
+      setCrop(undefined);
+      setCompletedCrop(undefined);
+      setIsCropping(true);
     }
   }
+
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const crop = makeAspectCrop(
+      { unit: '%', width: 90 },
+      ASPECT_RATIO,
+      width,
+      height,
+    );
+    const centeredCrop = centerCrop(crop, width, height);
+    setCrop(centeredCrop);
+  };
+
+  const createCroppedImage = () => {
+    if (!completedCrop || !imgRef.current) {
+        return;
+    }
+
+    const image = imgRef.current;
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = completedCrop.width * scaleX;
+    canvas.height = completedCrop.height * scaleY;
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+        return;
+    }
+
+    ctx.drawImage(
+        image,
+        completedCrop.x * scaleX,
+        completedCrop.y * scaleY,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY,
+        0,
+        0,
+        completedCrop.width * scaleX,
+        completedCrop.height * scaleY
+    );
+
+    // Chuyển đổi canvas thành Blob và cập nhật state
+    canvas.toBlob((blob) => {
+        if (!blob) return;
+        const croppedFile = new File([blob], "thumbnail.jpg", { type: 'image/jpeg' });
+        setThumbnailFile(croppedFile);
+        setThumbnailPreview(URL.createObjectURL(croppedFile));
+        setIsCropping(false);
+    }, 'image/jpeg', 0.9);
+  };
 
   // Xử lý sự kiện submit form.
   const handleSubmit = async (e: FormEvent) => {
@@ -196,8 +261,49 @@ export default function NewsForm({ mode, initialData }: NewsFormProps) {
         <div>
           <label className="block mb-1">Ảnh đại diện</label>
           <input type="file" accept="image/*" onChange={handleThumbnailChange} className="w-full" />
-          {thumbnailPreview && (
+          {/* {thumbnailPreview && (
             <img src={thumbnailPreview} alt="Thumbnail" className="mt-2 h-32 rounded-lg object-cover" />
+          )} */}
+          {thumbnailPreview && (
+            <div className="mt-2">
+              {/* Chỉ hiển thị công cụ cắt khi isCropping là true */}
+              {isCropping ? (
+                <div className="relative flex justify-center">
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(_, percentCrop) => setCrop(percentCrop)}
+                    onComplete={(c) => setCompletedCrop(c)}
+                    aspect={ASPECT_RATIO}
+                    minWidth={MIN_DIMENSION}
+                    minHeight={MIN_DIMENSION}
+                  >
+                    <img
+                      ref={imgRef}
+                      src={thumbnailPreview}
+                      alt="Crop me"
+                      onLoad={onImageLoad}
+                      className="max-w-full"
+                    />
+                  </ReactCrop>
+                </div>
+              ) : (
+                // Hiển thị ảnh xem trước khi đã xử lý hoặc ảnh cũ
+                <img src={thumbnailPreview} alt="Thumbnail" className="mt-2 h-32 object-cover" />
+              )}
+              
+              {/* Nút "Cắt ảnh" chỉ xuất hiện khi đã có vùng cắt hoàn chỉnh */}
+              {isCropping && completedCrop && (
+                <div className="mt-4">
+                  <button
+                    type="button"
+                    onClick={createCroppedImage}
+                    className="ml-4 px-4 py-2 bg-purple-600 rounded-lg text-white"
+                  >
+                    Cắt ảnh
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

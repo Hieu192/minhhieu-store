@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
 import slugify from 'slugify';
-import { uploadFileToCloudinary } from '@/ultis/cloudinary';
+import { deleteFileFromCloudinary, deleteFolderFromCloudinary, uploadFileToCloudinary } from '@/ultis/cloudinary';
 
 export async function GET(
   req: Request,
@@ -88,7 +88,7 @@ export async function PATCH(
     // Xử lý tệp ảnh đại diện mới
     const imageFile = formData.get('image') as File | null;
     if (imageFile && imageFile.size > 0) {
-      updateData.image = await uploadFileToCloudinary(imageFile);
+      updateData.image = await uploadFileToCloudinary(imageFile, 'news', newsId.toString());
     } else if (existingImageUrl !== undefined && existingImageUrl !== null) {
       updateData.image = existingImageUrl;
     }
@@ -103,5 +103,62 @@ export async function PATCH(
   } catch (error) {
     console.error('Error updating news article:', error);
     return NextResponse.json({ error: 'Failed to update news article' }, { status: 500 });
+  }
+}
+
+
+// Hàm DELETE để xóa bài viết
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const newId = parseInt(params.id, 10);
+
+    if (isNaN(newId)) {
+      return NextResponse.json({ error: 'Invalid news ID' }, { status: 400 });
+    }
+
+    const newToDelete = await prisma.news.findUnique({
+      where: { id: newId },
+    });
+
+    if (!newToDelete) {
+      return NextResponse.json({ error: 'News not found' }, { status: 404 });
+    }
+
+    // const imageUrl = newToDelete.image;
+
+    // if (imageUrl) {
+    //   try {
+    //     await deleteFileFromCloudinary(imageUrl, newId.toString());
+    //   } catch (error) {
+    //     console.error('Error deleting image from Cloudinary:', error);
+    //   }
+    // }
+
+    await deleteFolderFromCloudinary('news', newId.toString());
+
+    await prisma.news.delete({
+      where: { id: newId },
+    });
+
+    return NextResponse.json(
+      { message: 'Bài viết đã được xóa thành công' },
+      { status: 200 }
+    );
+
+  } catch (error) {
+    console.error('[DELETE /api/news] error:', error);
+    if (error instanceof Error && error.message.includes('Record to delete not found')) {
+      return NextResponse.json(
+        { error: 'Không tìm thấy bài viết để xóa' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(
+      { error: 'Lỗi máy chủ nội bộ' },
+      { status: 500 }
+    );
   }
 }

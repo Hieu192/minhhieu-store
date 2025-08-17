@@ -245,18 +245,18 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
   return (
     <div className="min-h-screen bg-gray-50 py-4 px-4 ">
       <div className="max-w-7xl mx-auto sm:px-6 md:px-8">
-          <div className="md:text-base text-gray-600 mb-4 space-x-1 bg-gray-200 p-3 rounded-md">
-            <Link href="/" className="hover:underline">Trang chủ</Link>
+          <div className="text-sm md:text-base text-gray-600 mb-4 bg-gray-200 p-3 rounded-md flex flex-nowrap overflow-x-auto">
+            <Link href="/" className="hover:underline flex-shrink-0">🏠Trang chủ</Link>
             {breadcrumb.map((item) => (
-              <span key={item.slug}>
-                <span className="mr-1">/</span>
+              <span key={item.slug} className="flex-shrink-0">
+                <span className="mx-2">/</span>
                 <Link href={`/${item.slug}`} className="hover:underline">
                   {capitalizeWords(item.name)}
                 </Link>
               </span>
             ))}
-            <span className="mr-1">/</span>
-            <span className="mr-1 text-blue-600">{capitalizeWords(product.name)}</span>
+            <span className="mr-2">/</span>
+            <span className="mr-2 text-blue-600 flex-shrink-0">{capitalizeWords(product.name)}</span>
           </div>
         {/* Thông tin sản phẩm */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -329,26 +329,32 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
               <span className="text-base text-gray-600">({product.reviews} đánh giá)</span>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-4 md:flex md:items-end">
               <p className="text-2xl font-bold text-red-600">{product.price.toLocaleString('vi-VN')}₫</p>
               {product.originalPrice && product.originalPrice > product.price && (
-                <p className="text-sm line-through text-gray-500">{product.originalPrice.toLocaleString('vi-VN')}₫</p>
+                <div className="flex  md:ml-4">
+                  <p className="text-sm line-through text-gray-500">{product.originalPrice.toLocaleString('vi-VN')}₫</p>
+                  <span className="ml-1 text-sm text-blue-500">
+                    (-{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%)
+                  </span>
+                </div>
               )}
             </div>
 
             <div className="mb-6">
               {/* <p className="text-gray-700">{product.description}</p> */}
               <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                {Object.entries(product.attributes).map(([key, value]) => (
+                {Object.entries(product.attributes || {}).map(([key, value]) => (
                   <li key={key}><strong>{key}:</strong> {value}</li>
                 ))}
               </ul>
             </div>
 
             {/* Nút tăng giảm số lượng */}
-            <div className="flex items-center gap-4 mb-4">
-              <p className="text-base font-semibold text-gray-700">Số lượng:</p>
+            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
+
               <div className="flex items-center gap-2">
+                <p className="text-base font-semibold text-gray-700">Số lượng:</p>
                 <button
                   onClick={handleDecrease}
                   className="p-1 border rounded w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition"
@@ -363,7 +369,7 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-base font-semibold text-gray-700">
+              <p className="text-lg font-semibold text-gray-700">
                 Tạm tính: {(product.price * quantity).toLocaleString('vi-VN')}₫
               </p>
             </div>
@@ -379,7 +385,7 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
               <button onClick={handleBuyNow} className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition">
                 Mua ngay
               </button>
-              <button onClick={addToCompareAndShowBar} className="bg-gray-100 px-4 py-2 rounded hover:bg-gray-200 transition">
+              <button onClick={addToCompareAndShowBar} className="bg-gray-100 px-4 py-2 rounded hover:bg-gray-200 transition hidden md:flex">
                 <LineChart className={`inline-block mr-1 h-5 w-5 ${isCompare(product.id) ? 'text-blue-500' : 'text-gray-500'}`} /> So sánh
               </button>
             </div>
@@ -399,7 +405,7 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
             }`}
             style={!isExpanded ? { maxHeight: maxHeight } : {}}
           >
-            {parseContent(product.description)}
+            {parseContent(product.description || '')}
 
             {/* Hiệu ứng mờ khi chưa mở rộng */}
             {!isExpanded && isOverflowing && (

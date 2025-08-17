@@ -9,6 +9,7 @@ import CompareBar from '@/components/compare/CompareBar';
 import FloatingContactButtons from '@/components/ui/FloatingContactButtons';
 import { getCategories, getCategoriesTree } from '@/lib/api';
 import PageWrapper from '@/components/layout/PageWrapper';
+import { ToastContainer } from 'react-toastify';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -37,6 +38,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <CartSidebar />
           <CompareBar /> {/* 👉 hiển thị bảng so sánh ở mọi trang */}
           <FloatingContactButtons />
+          <ToastContainer
+            position="top-center" // Hoặc vị trí bạn muốn
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover 
+            progressClassName="custom-toast-progress"
+          />
         </CartProvider>
       </body>
     </html>

@@ -17,6 +17,21 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedLevel, setSelectedLevel] = useState<string>('') // State mới cho bộ lọc cấp độ
 
+  // nhớ sửa logic cha, xóa cha thì xóa hết con
+  const handleDeleteCategory = async (id: number) => {
+    if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
+      try {
+        const res = await fetch(`/api/admin/categories/${id}`, {
+          method: 'DELETE',
+        })
+        if (!res.ok) throw new Error('Failed to delete category')
+        setCategories((prev) => prev.filter((cat) => cat.id !== id))
+      } catch (error) {
+        console.error('Error deleting category:', error)
+      }
+    }
+  }
+
   useEffect(() => {
     async function fetchCategories() {
       setLoading(true)
@@ -107,7 +122,12 @@ export default function CategoriesPage() {
                     >
                       Sửa
                     </button>
-                    <button className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded">Xóa</button>
+                    <button 
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded"
+                    >
+                      Xóa
+                    </button>
                   </td>
                 </tr>
               ))}

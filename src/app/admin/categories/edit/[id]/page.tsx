@@ -39,7 +39,7 @@ export default function EditCategoryPage() {
       try {
         const [categoryRes, parentCatsRes] = await Promise.all([
           fetch(`/api/admin/categories/${categoryId}`),
-          fetch(`/api/admin/categories?level=1`),
+          fetch(`/api/admin/categories?level=0`),
         ])
 
         if (!categoryRes.ok || !parentCatsRes.ok) {
@@ -108,7 +108,7 @@ export default function EditCategoryPage() {
     
     try {
       const res = await fetch(`/api/admin/categories/${categoryId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         body: formData,
       })
 
@@ -164,16 +164,16 @@ export default function EditCategoryPage() {
             required
           >
             <option value="">-- Chọn cấp --</option>
+            <option value="0">Cấp 0</option>
             <option value="1">Cấp 1</option>
             <option value="2">Cấp 2</option>
-            <option value="3">Cấp 3</option>
           </select>
         </div>
 
-        {/* Nếu cấp 2 → chọn danh mục cha */}
-        {form.level === '2' && (
+        {/* Nếu cấp 1 → chọn danh mục cha */}
+        {form.level === '1' && (
           <div>
-            <label className="block mb-1">Danh mục cha (Cấp 1)</label>
+            <label className="block mb-1">Danh mục cha (Cấp 0)</label>
             <select
               name="parentId"
               value={form.parentId}
