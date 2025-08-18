@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingCart, Heart, LineChart, Star, Minus, Plus } from 'lucide-react';
+import { ShoppingCart, Heart, LineChart, Star, Minus, Plus, CheckCircle, ShieldCheck, Repeat, Phone } from 'lucide-react';
 import { useCart } from '@/context/Cartcontext';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalStorageList } from '@/hooks/useLocalStorageList';
@@ -388,6 +388,28 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
               <button onClick={addToCompareAndShowBar} className="bg-gray-100 px-4 py-2 rounded hover:bg-gray-200 transition hidden md:flex">
                 <LineChart className={`inline-block mr-1 h-5 w-5 ${isCompare(product.id) ? 'text-blue-500' : 'text-gray-500'}`} /> So sánh
               </button>
+            </div>
+
+            <div className="mt-6 p-4 border border-red-600 rounded-lg">
+              <h3 className="text-lg font-bold mb-2">Chính sách & Hỗ trợ</h3>
+              <ul className="text-sm text-gray-700 space-y-2">
+                <li className="flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  <p>Miễn phí giao hàng nội thành TP.HCM. - Shipcod toàn quốc</p>
+                </li>
+                <li className="flex items-center">
+                  <ShieldCheck className="h-5 w-5 text-blue-500 mr-2" />
+                  <p>Bảo hành chính hãng 10 năm.</p>
+                </li>
+                <li className="flex items-center">
+                  <Repeat className="h-5 w-5 text-red-500 mr-2" />
+                  <p>Đổi trả miễn phí trong 7 ngày.</p>
+                </li>
+                <li className="flex items-center">
+                  <Phone className="h-5 w-5 text-gray-500 mr-2" />
+                  <p>Hotline tư vấn 24/7: <a href="tel:09xxxxxxx" className="text-blue-600 hover:underline">09xxxxxxx</a></p>
+                </li>
+              </ul>
             </div>
           </div>
         </div>

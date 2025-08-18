@@ -282,7 +282,7 @@ export default function Header({ categories, categoriesTree, onToggleMobileMenu,
             <CategoryDropdown categories={categories} />
             <CategoryDropdownTree categories={categoriesTree} />
             <NavButton href="/news" label="TIN TỨC  📰" />
-            <NavButton href="/about" label="VỀ CHÚNG TÔI  ℹ️" />
+            <NavButton href="/about" label="VỀ CHÚNG TÔI  🏢" />
             <NavButton href="/contact" label="LIÊN HỆ  📞" />
           </div>
         </nav>
