@@ -8,22 +8,25 @@ import React, {
   Dispatch,
   SetStateAction,
 } from 'react';
-import { Product } from '@/types/product';
+import { Product, ProductVariant } from '@/types/product';
 import { useEffect } from 'react';
-import { toast } from 'react-toastify'; // Sửa đổi: import từ react-toastify
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from 'next/navigation';
 
-type CartItem = Product & { quantity: number };
+type CartItem = {
+  product: Product;
+  variant?: ProductVariant; // ✅ Thêm variant
+  quantity: number;
+};
 
 interface CartContextType {
   cartItems: CartItem[];
-  selectedItems: number[];
-  // ⭐️ [Quan trọng] Đã sửa kiểu dữ liệu để chấp nhận hàm callback
-  setSelectedItems: Dispatch<SetStateAction<number[]>>;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  selectedItems: string[]; // ✅ lưu key productId-variantId
+  setSelectedItems: Dispatch<SetStateAction<string[]>>;
+  addToCart: (product: Product, quantity?: number, variant?: ProductVariant) => void;
+  removeFromCart: (key: string) => void;
+  updateQuantity: (key: string, quantity: number) => void;
   getTotalItems: () => number;
   getTotalPrice: () => number;
   isCartOpen: boolean;
@@ -39,73 +42,74 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
-
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const router = useRouter();
 
-  // ⭐️ [Quan trọng] Chỉ dùng một useEffect để tải dữ liệu ban đầu
+  // Tạo key duy nhất cho product + variant
+  const makeKey = (productId: number, variantId?: number) =>
+    variantId ? `${productId}-${variantId}` : `${productId}`;
+
   useEffect(() => {
     const stored = localStorage.getItem('cart');
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
+        const parsed: CartItem[] = JSON.parse(stored);
         if (Array.isArray(parsed)) {
           setCartItems(parsed);
-          // Tự động chọn tất cả sản phẩm khi tải giỏ hàng
-          setSelectedItems(parsed.map((item: CartItem) => item.id));
+          setSelectedItems(parsed.map(item => makeKey(item.product.id, item.variant?.id)));
         }
       } catch (error) {
         console.warn('❌ Failed to parse cart from storage', error);
       }
     }
-    setIsHydrated(true); // Đánh dấu đã tải dữ liệu xong
-  }, []); // [] đảm bảo chỉ chạy một lần khi component được mount
+    setIsHydrated(true);
+  }, []);
 
-  // ⭐️ [Quan trọng] useEffect để lưu dữ liệu và đồng bộ selectedItems
   useEffect(() => {
     if (isHydrated) {
       localStorage.setItem('cart', JSON.stringify(cartItems));
-
-      // Đồng bộ danh sách sản phẩm đã chọn: loại bỏ các sản phẩm không còn trong giỏ hàng
+      // đồng bộ selectedItems
       setSelectedItems(prevSelected => {
-        const currentCartIds = cartItems.map(item => item.id);
-        return prevSelected.filter(id => currentCartIds.includes(id));
+        const keys = cartItems.map(item => makeKey(item.product.id, item.variant?.id));
+        return prevSelected.filter(id => keys.includes(id));
       });
     }
-  }, [cartItems, isHydrated, setSelectedItems]);
+  }, [cartItems, isHydrated]);
 
-  const addToCart = (product: Product, quantity = 1) => {
+  const addToCart = (product: Product, quantity = 1, variant?: ProductVariant) => {
+    const key = makeKey(product.id, variant?.id);
+
     setCartItems(prev => {
-      const existing = prev.find(item => item.id === product.id);
+      const existing = prev.find(
+        item =>
+          item.product.id === product.id &&
+          item.variant?.id === variant?.id
+      );
       if (existing) {
         return prev.map(item =>
-          item.id === product.id
+          item.product.id === product.id && item.variant?.id === variant?.id
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { ...product, quantity }];
+      return [...prev, { product, variant, quantity }];
     });
 
-  // Tạo thông báo mới với giao diện hiện đại
     toast.success(
       <div className="flex items-center gap-4">
-        {/* Icon sản phẩm hoặc giỏ hàng */}
         <div className="w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
           <img
-            src={product.image}
-            alt={product.name}
+            src={variant?.image || product.image}
+            alt={variant?.name || product.name}
             className="w-full h-full object-cover"
           />
         </div>
-
         <div className="flex-grow flex flex-col">
-          <span className="text-sm font-semibold text-gray-800">
-            Đã thêm vào giỏ hàng:
+          <span className="text-sm font-semibold text-gray-800">Đã thêm vào giỏ hàng:</span>
+          <span className="text-sm text-gray-600">
+            {product.name} {variant ? `- ${variant.name}` : ''}
           </span>
-          <span className="text-sm text-gray-600">{product.name}</span>
         </div>
-
         <button
           onClick={() => {
             toast.dismiss();
@@ -116,71 +120,57 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           Xem giỏ hàng
         </button>
       </div>,
-      {
-        position: 'top-center',
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        style: {
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-          padding: '12px',
-        },
-      }
+      { position: 'top-center', autoClose: 4000 }
     );
   };
 
-  const removeFromCart = (productId: number) => {
-    setCartItems(prev => prev.filter(item => item.id !== productId));
-    // selectedItems sẽ được tự động đồng bộ bởi useEffect ở trên
+  const removeFromCart = (key: string) => {
+    setCartItems(prev =>
+      prev.filter(item => makeKey(item.product.id, item.variant?.id) !== key)
+    );
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
-    // ⭐️ [Quan trọng] Logic tối ưu: Nếu số lượng <= 0 thì xóa sản phẩm
-    if (quantity <= 0) {
-      alert('Số lượng tối thiểu là 1.');
-      // removeFromCart(productId);
-      return;
-    }
-    // Nếu số lượng > 0 thì cập nhật
+  const updateQuantity = (key: string, quantity: number) => {
+    if (quantity <= 0) return;
     setCartItems(prev =>
       prev.map(item =>
-        item.id === productId ? { ...item, quantity } : item
+        makeKey(item.product.id, item.variant?.id) === key
+          ? { ...item, quantity }
+          : item
       )
     );
   };
-  
-  const getTotalItems = () => {
-    return cartItems.reduce((sum, item) => sum + item.quantity, 0);
-  };
 
-  const getTotalPrice = () => {
-    return cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  };
+  const getTotalItems = () =>
+    cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
-  const getSelectedTotalPrice = () => {
-    return cartItems.reduce((total, item) => {
-      if (selectedItems.includes(item.id)) {
-        return total + item.price * item.quantity;
+  const getTotalPrice = () =>
+    cartItems.reduce(
+      (sum, item) => sum + (item.variant?.price || item.product.price) * item.quantity,
+      0
+    );
+
+  const getSelectedTotalPrice = () =>
+    cartItems.reduce((total, item) => {
+      const key = makeKey(item.product.id, item.variant?.id);
+      if (selectedItems.includes(key)) {
+        return total + (item.variant?.price || item.product.price) * item.quantity;
       }
       return total;
     }, 0);
-  };
 
-  const getSelectedTotalQuantity = () => {
-    return cartItems.reduce((totalQuantity, item) => {
-      if (selectedItems.includes(item.id)) {
-        return totalQuantity + item.quantity;
+  const getSelectedTotalQuantity = () =>
+    cartItems.reduce((total, item) => {
+      const key = makeKey(item.product.id, item.variant?.id);
+      if (selectedItems.includes(key)) {
+        return total + item.quantity;
       }
-      return totalQuantity;
+      return total;
     }, 0);
-  };
 
   const removeSelectedItemsFromCart = () => {
     setCartItems(prev =>
-      prev.filter(item => !selectedItems.includes(item.id))
+      prev.filter(item => !selectedItems.includes(makeKey(item.product.id, item.variant?.id)))
     );
   };
 
@@ -208,7 +198,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     </CartContext.Provider>
   );
 };
-
 
 // Hook tiện dụng
 export const useCart = (): CartContextType => {

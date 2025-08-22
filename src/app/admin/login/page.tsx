@@ -13,12 +13,14 @@ export default function AdminLogin() {
   const { login } = useAdminAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('Submitting login form with data:', formData)
     e.preventDefault()
     setIsLoading(true)
     setError('')
 
     try {
       const success = await login(formData.email, formData.password)
+      console.log('Login success:', success)
       if (success) {
         router.push('/admin')
       } else {

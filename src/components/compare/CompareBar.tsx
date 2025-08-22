@@ -1,97 +1,140 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import CompareModal from './CompareModal';
 import { usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { Product } from '@/types/product';
 import SafeImage from '@/ultis/SafeImage';
 
+interface CompareItem {
+  productId: number;
+  variantId: number;
+  slug: string;
+  categorySlug: string;
+}
 
 export default function CompareBar() {
-  const [compareSlugs, setCompareSlugs] = useState<string[]>([]);
+  const [variantIds, setVariantIds] = useState<number[]>([]);
+  const [items, setItems] = useState<CompareItem[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const pathname = usePathname();
-  // Đồng bộ localStorage
+
+  // Đọc từ localStorage và đồng bộ state
   useEffect(() => {
     const update = () => {
-      const stored = localStorage.getItem('compare');
-      const slugs = stored ? JSON.parse(stored) : [];
-      setCompareSlugs(slugs.slice(0, 3));
-      // if (ids.length > 0) setIsVisible(true);
+      const storedIds = localStorage.getItem('compare');
+      const ids: number[] = storedIds ? JSON.parse(storedIds) : [];
+
+      const storedDetails = localStorage.getItem('compareDetails');
+      const details: CompareItem[] = storedDetails ? JSON.parse(storedDetails) : [];
+
+      const top3 = ids.slice(0, 3);
+
+      // Map theo thứ tự variantIds
+      const detailMap = new Map(details.map((d) => [d.variantId, d]));
+      const top3Details = top3
+        .map((id) => detailMap.get(id))
+        .filter(Boolean) as CompareItem[];
+
+      setVariantIds(top3);
+      setItems(top3Details);
+      setIsVisible(top3.length > 0);
     };
 
     update();
     window.addEventListener('storage', update);
-    // const interval = setInterval(update, 300); // cập nhật liên tục
     return () => {
       window.removeEventListener('storage', update);
-      // clearInterval(interval);
     };
   }, []);
 
+  // Ép bật bar từ nơi khác
   useEffect(() => {
     const handleShowBar = () => setIsVisible(true);
     window.addEventListener('show-compare-bar', handleShowBar);
-
-    return () => {
-      window.removeEventListener('show-compare-bar', handleShowBar);
-    };
+    return () => window.removeEventListener('show-compare-bar', handleShowBar);
   }, []);
 
+  // Mỗi khi chuyển route → ẩn bar
   useEffect(() => {
-    // Mỗi khi chuyển route → ẩn bar
     setIsVisible(false);
   }, [pathname]);
 
-  const remove = (slug: string) => {
-    const updated = compareSlugs.filter((x) => x !== slug);
-    localStorage.setItem('compare', JSON.stringify(updated));
-    // localStorage.setItem('compareDetail', JSON.stringify(updated));
-    setCompareSlugs(updated);
-
-    if (updated.length === 0) {
-      setIsVisible(false);
-    }
-  };
-
+  // Fetch products theo slug từ items (giữ API cũ)
   useEffect(() => {
-    if (compareSlugs.length === 0) return;
-
+    if (items.length === 0) {
+      setSelectedProducts([]);
+      return;
+    }
     const fetchProducts = async () => {
       try {
-        const res = await fetch(`/api/products/by-slugs?slugs=${compareSlugs.join(',')}`);
-        const data = await res.json();
+        const slugs = items.map((i) => i.slug).join(',');
+        const res = await fetch(`/api/products/by-slugs?slugs=${slugs}`);
+        const data: Product[] = await res.json();
         setSelectedProducts(data);
-        // if (data.length > 0) setIsVisible(true);
       } catch (err) {
         console.error('Failed to fetch compared products', err);
       }
     };
+    fetchProducts();
+  }, [items]);
 
-      fetchProducts();
-  }, [compareSlugs]);
+  // Gom dữ liệu product + variant theo CompareItem
+  const cards = useMemo(() => {
+    return items
+      .map((it) => {
+        const product = selectedProducts.find((p) => p.slug === it.slug);
+        const variant = product?.variants?.find((v) => v.id === it.variantId) || null;
+        return product ? { product, variant, item: it } : null;
+      })
+      .filter(Boolean) as { product: Product; variant: any; item: CompareItem }[];
+  }, [items, selectedProducts]);
 
-  if (!isVisible || selectedProducts.length === 0) return null;
+  const remove = (variantId: number) => {
+    const idsRaw = localStorage.getItem('compare');
+    const detailsRaw = localStorage.getItem('compareDetails');
+
+    const ids: number[] = idsRaw ? JSON.parse(idsRaw) : [];
+    const details: CompareItem[] = detailsRaw ? JSON.parse(detailsRaw) : [];
+
+    const updatedIds = ids.filter((id) => id !== variantId);
+    const updatedDetails = details.filter((d) => d.variantId !== variantId);
+
+    localStorage.setItem('compare', JSON.stringify(updatedIds));
+    localStorage.setItem('compareDetails', JSON.stringify(updatedDetails));
+
+    // Cập nhật UI qua cơ chế cũ
+    window.dispatchEvent(new Event('storage'));
+
+    if (updatedIds.length === 0) setIsVisible(false);
+  };
+
+  if (!isVisible || cards.length === 0) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 flex justify-center z-50 p-2 md:p-4 ">
       <div className="flex flex-col w-full md:w-auto md:flex-row bg-white border shadow-lg rounded-md items-center gap-4 pb-2">
         <div className="flex flex-col w-full md:w-auto md:flex-row md:gap-3 px-4 justify-center">
-          {selectedProducts.map((product) => (
-            <div key={product.id} className="relative w-full h-24 md:w-56 md:h-28 flex-shrink-0 border rounded-md text-center mt-2 md:my-3">
+          {cards.map(({ product, variant, item }) => (
+            <div
+              key={item.variantId}
+              className="relative w-full h-24 md:w-56 md:h-28 flex-shrink-0 border rounded-md text-center mt-2 md:my-3"
+            >
               <div className="flex w-16 md:w-20 justify-center mt-1 mx-auto">
                 <SafeImage
-                  src={product.image}
-                  alt={product.name}
+                  src={variant?.image || product.image}
+                  alt={product.name + (variant?.name ? ` - ${variant.name}` : '')}
                 />
               </div>
-              <p className="text-sm line-clamp-2">{product.name}</p>
+              <p className="text-xs line-clamp-2">
+                {product.name}
+                {variant?.name ? ` - ${variant.name}` : ''}
+              </p>
               <button
-                onClick={() => remove(product.slug)}
+                onClick={() => remove(item.variantId)}
                 className="absolute top-1 left-1 md:left-auto md:right-1 bg-white rounded-full shadow p-1 border hover:bg-gray-100"
               >
                 <X className="h-4 w-4 text-gray-500" />
@@ -99,8 +142,8 @@ export default function CompareBar() {
             </div>
           ))}
 
-          {/* Hiển thị chỗ trống nếu < 3 */}
-          {Array.from({ length: 3 - selectedProducts.length }).map((_, i) => (
+          {/* Ô trống nếu < 3 */}
+          {Array.from({ length: 3 - cards.length }).map((_, i) => (
             <div
               key={i}
               onClick={() => setShowModal(true)}
@@ -111,14 +154,11 @@ export default function CompareBar() {
           ))}
         </div>
 
-        {/* Nút chuyển đến trang so sánh */}
+        {/* Nút */}
         <div className="flex flex-col gap-2 mr-4">
-          {/* Hàng 1: Thông báo */}
           <p className="text-sm text-gray-700 font-medium">
-            Đã chọn {selectedProducts.length} sản phẩm
+            Đã chọn {cards.length} sản phẩm
           </p>
-
-          {/* Hàng 2: 2 nút canh phải */}
           <div className="flex justify-end gap-3">
             <button
               onClick={() => setIsVisible(false)}
@@ -135,17 +175,52 @@ export default function CompareBar() {
           </div>
         </div>
       </div>
-      {showModal && 
+
+      {showModal && (
         <CompareModal
           isOpen={showModal}
           onClose={() => setShowModal(false)}
-          onAdd={(slug) => {
-            const updated = [...compareSlugs, slug].slice(0, 3);
-            localStorage.setItem('compare', JSON.stringify(updated));
-            setCompareSlugs(updated);
+          onAdd={(item) => {
+            // item: CompareItem { productId, variantId, slug, categorySlug }
+            const idsRaw = localStorage.getItem('compare');
+            const detailsRaw = localStorage.getItem('compareDetails');
+
+            const ids: number[] = idsRaw ? JSON.parse(idsRaw) : [];
+            const details: CompareItem[] = detailsRaw ? JSON.parse(detailsRaw) : [];
+
+            // Trùng theo variant?
+            if (ids.includes(item.variantId)) {
+              window.dispatchEvent(new Event('show-compare-bar'));
+              return;
+            }
+
+            // Cùng category?
+            const sameCategory = details.every(
+              (d) => d.categorySlug === item.categorySlug
+            );
+
+            let updatedIds: number[];
+            let updatedDetails: CompareItem[];
+
+            if (ids.length === 0 || sameCategory) {
+              updatedIds = [item.variantId, ...ids.filter((id) => id !== item.variantId)].slice(0, 3);
+              updatedDetails = [item, ...details.filter((d) => d.variantId !== item.variantId)].slice(0, 3);
+            } else {
+              // khác category → reset
+              updatedIds = [item.variantId];
+              updatedDetails = [item];
+            }
+
+            localStorage.setItem('compare', JSON.stringify(updatedIds));
+            localStorage.setItem('compareDetails', JSON.stringify(updatedDetails));
+
+            // Đồng bộ + ép bật bar
+            window.dispatchEvent(new Event('storage'));
+            window.dispatchEvent(new Event('show-compare-bar'));
+            setShowModal(false);
           }}
         />
-      }
+      )}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useAdminAuth } from '@/context/AdminAuthContext'
 
 const menuItems = [
   {
@@ -50,6 +51,22 @@ const menuItems = [
 export default function AdminSidebar() {
   const pathname = usePathname()
 
+    const { logout } = useAdminAuth()
+
+  const handleLogout = async (e: React.FormEvent) => {
+    e.preventDefault()
+    // Add logout functionality
+    if (typeof window !== 'undefined') {
+      const success = await logout()
+      if (success) {
+        // Redirect to login page
+        window.location.href = '/admin/login'
+      } else {
+        console.error('[Logout Error] Failed to logout')
+      }
+    }
+  }
+
   return (
     <aside className="fixed left-0 top-0 h-full w-80 bg-white/10 backdrop-blur-xl border-r border-white/20 p-8 overflow-y-auto">
       {/* Logo */}
@@ -93,14 +110,16 @@ export default function AdminSidebar() {
           </div>
         </div>
         <button 
-          onClick={() => {
-            // Add logout functionality
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('admin_user')
-              document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
-              window.location.href = '/admin/login'
-            }
-          }}
+          // onClick={() => {
+
+          //   // Add logout functionality
+          //   if (typeof window !== 'undefined') {
+          //     localStorage.removeItem('admin_user')
+          //     document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
+          //     window.location.href = '/admin/login'
+          //   }
+          // }}
+          onClick = {handleLogout}
           className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-lg text-white py-3 px-4 rounded-lg text-sm font-medium transition-all duration-300 border border-white/20"
         >
           Đăng xuất

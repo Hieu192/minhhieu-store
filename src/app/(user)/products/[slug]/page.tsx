@@ -26,6 +26,7 @@ export async function generateStaticParams() {
 
 // Hàm này cũng chạy trong quá trình build, vì vậy cần sử dụng Prisma
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const baseUrl = "https://yourdomain.com";
   const product = await prisma.product.findUnique({
     where: { slug: params.slug },
   });
@@ -36,15 +37,35 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     return {};
   }
 
-  const description = product.description ?? '';
+  const description = product.description?.slice(0, 150) || "Sản phẩm chất lượng cao, bảo hành dài hạn.";
+
+ let image: string | undefined = undefined;
+  if (Array.isArray(product.gallery) && product.gallery.length > 0) {
+    image = String(product.gallery[0]);
+  } else if (product.image) {
+    image = String(product.image);
+  }
+
+  const canonicalUrl = `${baseUrl}/products/${params.slug}`;
 
   return {
-    title: `${product.name} | Thiết bị vệ sinh`,
-    description: description.slice(0, 150),
+    title: `${product.name} | Thiết bị vệ sinh Minh Hiếu`,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: product.name,
-      description: description.slice(0, 150),
-      images: [product.image],
+      description,
+      url: canonicalUrl,
+      type: "website", // ✅ fix: dùng website thay vì product
+      images: image ? [{ url: image, alt: product.name }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: image ? [image] : undefined,
     },
   };
 }
@@ -67,6 +88,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
           description: true,
         },
       },
+      variants: true, 
     },
   });
 
@@ -119,6 +141,18 @@ export default async function Page({ params }: { params: { slug: string } }) {
     attributes: (product.attributes && typeof product.attributes === 'object') ? product.attributes as Record<string, string> : {},
     // Chuyển đổi 'gallery' từ kiểu JsonValue sang mảng string nếu có
     gallery: (product.gallery as string[] | null) ?? [],
+    variants: product.variants.map((v) => ({
+    id: v.id,
+    name: v.name ?? '',
+    image: v.image ?? '',
+    price: v.price,
+    originalPrice: v.originalPrice ?? undefined,
+    stock: v.stock,
+    attributes:
+      v.attributes && typeof v.attributes === 'object'
+        ? (v.attributes as Record<string, string>)
+        : {},
+  })),
   };
 
   return <ProductDetailClient product={clientProduct} breadcrumb={breadcrumb} />;

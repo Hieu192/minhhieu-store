@@ -92,6 +92,7 @@ export async function GET(req: Request) {
         originalPrice: true,
         badges: true,
         categoryId: true,
+        variants: true,
         reviews: true,
       },
     });

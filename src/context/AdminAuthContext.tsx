@@ -14,7 +14,7 @@ interface AdminUser {
 interface AdminAuthContextType {
   user: AdminUser | null
   login: (email: string, password: string) => Promise<boolean>
-  logout: () => void
+  logout: () => Promise<boolean>
   isLoading: boolean
 }
 
@@ -26,7 +26,6 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
-    // Check for existing admin session
     const savedUser = localStorage.getItem('admin_user')
     if (savedUser) {
       setUser(JSON.parse(savedUser))
@@ -35,31 +34,47 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulate API call
-    if (email === 'admin@mystore.com' && password === 'admin123') {
+    try {
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) return false
+      const data = await res.json()
+
       const adminUser: AdminUser = {
-        id: '1',
-        name: 'Admin User',
-        email: email,
-        role: 'admin'
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
       }
-      
+
       setUser(adminUser)
       localStorage.setItem('admin_user', JSON.stringify(adminUser))
-      
-      // Set cookie for middleware
-      document.cookie = 'admin_token=authenticated; path=/; max-age=86400'
-      
+
       return true
+    } catch (err) {
+      console.error('[Login Error]', err)
+      return false
     }
-    return false
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('admin_user')
-    document.cookie = 'admin_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT'
-    router.push('/admin/login')
+  const logout = async () => {
+    try {
+      await fetch('/api/admin/auth/logout', {
+        method: 'POST',
+      })
+    } catch (err) {
+      console.error('[Logout Error]', err)
+      return false
+    } finally {
+      setUser(null)
+      localStorage.removeItem('admin_user')
+      router.push('/admin/login')
+      return true
+    }
   }
 
   return (

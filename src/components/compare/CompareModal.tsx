@@ -2,43 +2,49 @@
 
 import { useEffect, useState } from 'react';
 import { X, Check } from 'lucide-react';
-import Image from 'next/image';
 import SafeImage from '@/ultis/SafeImage';
 import { Product } from '@/types/product';
 import { formatPrice } from '@/ultis/helps';
 
+interface CompareItem {
+  productId: number;
+  variantId: number;
+  slug: string;
+  categorySlug: string;
+}
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (slug: string) => void;
+  onAdd: (item: CompareItem) => void;
 }
 
 export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
-  const [compareList, setCompareList] = useState<string[]>([]);
-  const [categorySlug, setCategorySlug] = useState<string | null>(null);
+  const [compareSlugs, setCompareSlugs] = useState<string[]>([]);
+  const [categorySlug, setCategorySlug] = useState<string>('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Lấy compare slug và category từ localStorage
-    const stored = localStorage.getItem('compare');
+    // Lấy compare slugs và details từ localStorage
+    // const stored = localStorage.getItem('compare');
     const storedDetails = localStorage.getItem('compareDetails');
 
-    const slugs: string[] = stored ? JSON.parse(stored) : [];
-    setCompareList(slugs);
+    // const slugs: string[] = stored ? JSON.parse(stored) : [];
+    // setCompareSlugs(slugs);
 
-    const details: { slug: string; categorySlug: string }[] = storedDetails
-      ? JSON.parse(storedDetails)
-      : [];
-
+    const details: CompareItem[] = storedDetails ? JSON.parse(storedDetails) : [];
     if (details.length > 0) {
-      const currentCategory = slugs.length > 0 ? details[0].categorySlug : '';
+      const currentCategory = details[0].categorySlug;
+      const productSlugs = details.map((d) => d.slug);
       setCategorySlug(currentCategory);
-      // Gọi API sản phẩm theo danh mục
+      setCompareSlugs(productSlugs);
+
+      // Gọi API sản phẩm theo category
       setLoading(true);
-      fetch(`/api/products?category=${currentCategory}&limit=20&offset=0`) // đổi thành tìm theo category cha chứ không phải category con
+      fetch(`/api/products?category=${currentCategory}&limit=20&offset=0`)
         .then((res) => res.json())
         .then((data) => {
           setProducts(data || []);
@@ -48,18 +54,17 @@ export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
     }
   }, [isOpen]);
 
+  // Disable scroll body khi modal mở
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-
     return () => {
       document.body.style.overflow = '';
     };
   }, [isOpen]);
-
 
   if (!isOpen) return null;
 
@@ -84,27 +89,28 @@ export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
             <p>Không có sản phẩm nào để so sánh.</p>
           ) : (
             products.map((product) => {
-              const alreadyAdded = compareList.includes(product.slug);
+              // ✅ lấy variant rẻ nhất làm mặc định
+              const variant =
+                product.variants?.reduce((min, v) =>
+                  v.price < min.price ? v : min
+                ) ?? null;
+
+              if (!variant) return null;
+
+              // ✅ chỉ check theo slug (không check variantId)
+              const alreadyAdded = compareSlugs.includes(product.slug);
+
               return (
                 <div
                   key={product.id}
                   className="border rounded-md pb-2 bg-gray-50 flex flex-col items-center text-center"
                 >
-                  {/* <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-24 object-cover rounded mb-2"
-                  /> */}
-                  <SafeImage
-                    src={product.image}
-                    alt={product.name}
-                    // width={200}
-                    // height={200}
-                  />
-                  {/* <p className="text-sm line-clamp-2 mb-2">{product.name}</p> */}
-                  <p className="text-gray-900 my-1 line-clamp-2 min-h-[2.5rem] text-sm">{product.name}</p>
+                  <SafeImage src={variant.image || product.image} alt={product.name} />
+                  <p className="text-gray-900 my-1 line-clamp-2 min-h-[2.5rem] text-sm">
+                    {product.name}
+                  </p>
                   <span className="text-sm md:text-base font-bold text-red-600">
-                    {formatPrice(product.price)}
+                    {formatPrice(variant.price)}
                   </span>
 
                   {alreadyAdded ? (
@@ -117,8 +123,13 @@ export default function CompareModal({ isOpen, onClose, onAdd }: Props) {
                   ) : (
                     <button
                       onClick={() => {
-                        onAdd(product.slug);
-                        onClose(); // đóng modal sau khi thêm
+                        onAdd({
+                          productId: product.id,
+                          variantId: variant.id, // vẫn lưu variantId để CompareBar hiển thị đúng
+                          slug: product.slug,
+                          categorySlug: categorySlug,
+                        });
+                        onClose();
                       }}
                       className="bg-red-600 text-white text-xs px-3 py-1 rounded hover:bg-red-700 transition"
                     >

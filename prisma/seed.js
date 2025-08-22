@@ -3,7 +3,6 @@ const { faker } = require('@faker-js/faker');
 
 const prisma = new PrismaClient();
 
-// Danh sách danh mục cha và con
 const rawCategories = {
   'Bồn cầu': ['1 khối', '2 khối', 'trứng', 'thông minh'],
   'Sen cây': ['nóng', 'lạnh'],
@@ -19,61 +18,74 @@ const rawCategories = {
   'gạch dán tường': ['60x60', '80x80', '100x100'],
 };
 
-const defaultCategoryImage = 'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753242796/ecommerce/categories/AVA-copy_uz3bcf.jpg';
+const defaultCategoryImage =
+  'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753242796/ecommerce/categories/AVA-copy_uz3bcf.jpg';
 
-// Tạo slug từ tên
+// slugify tiếng Việt
 const slugify = (text) => {
   return text
-    .normalize('NFD') // loại dấu tiếng Việt
+    .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, '-')
     .toLowerCase();
 };
 
-// Tạo product mẫu
-function generateProductsForCategory(categoryId, count = 5) {
-  const products = [];
+// Tạo variants cho product
+function generateVariants(productId, count = 3) {
+  const variants = [];
 
   for (let i = 0; i < count; i++) {
-    const name = `${faker.commerce.productAdjective()} ${faker.commerce.productMaterial()} ${faker.commerce.product()}`;
-    const slug = faker.helpers.slugify(name.toLowerCase());
     const price = faker.number.int({ min: 500_000, max: 10_000_000 });
-    const originalPrice = price + faker.number.int({ min: 100_000, max: 1_000_000 });
-    const brand = faker.company.name();
-    const rating = parseFloat((Math.random() * 1.5 + 3.5).toFixed(1));
-    const reviews = faker.number.int({ min: 1, max: 50 });
+    const originalPrice = price + faker.number.int({ min: 50_000, max: 500_000 });
 
-    products.push({
-      name,
-      slug,
+    variants.push({
+      productId,
+      name: `Phiên bản ${i + 1}`,
       price,
       originalPrice,
-      brand,
-      rating,
-      reviews,
-      image: 'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753237435/ecommerce/products/inax-AC-902VN-CW-S32VN-BW1-1090x1090_ziywym.webp',
-      gallery: [
-        "https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753237435/ecommerce/products/inax-AC-902VN-CW-S32VN-BW1-1090x1090_ziywym.webp",
-        "https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753238578/bon-cau-1-khoi-cao-cap-ttcera-bc005-6001625895793_jsjyb3.jpg",
-        "https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753246269/ecommerce/products/bon-cau-1-khoi-cao-cap-ttcera-bc005-6021625895793_klyxwi.jpg",
-        "https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753246281/ecommerce/products/bon-cau-1-khoi-cao-cap-ttcera-bc005-6011625895793_wuktwx.jpg"
-      ],
-      description: faker.commerce.productDescription(),
+      stock: faker.number.int({ min: 0, max: 100 }),
       attributes: {
-        KichThuoc: `${faker.number.int({ min: 400, max: 800 })}x${faker.number.int({ min: 400, max: 800 })}mm`,
+        KichThuoc: `${faker.number.int({ min: 300, max: 800 })}x${faker.number.int({
+          min: 300,
+          max: 800,
+        })}mm`,
         MauSac: faker.color.human(),
         ChatLieu: faker.commerce.productMaterial(),
       },
-      badges: faker.helpers.shuffle(['Bán chạy', 'Mới', 'Giảm giá', 'Ưa chuộng']).slice(0, faker.number.int({ min: 0, max: 2 })),
-      categoryId,
     });
   }
 
-  return products;
+  return variants;
+}
+
+// Tạo product (chưa gắn variant)
+function generateProduct(categoryId, index) {
+  const name = `${faker.commerce.productAdjective()} ${faker.commerce.productMaterial()} ${faker.commerce.product()}`;
+  const slug = `${slugify(name)}-${index}`;
+
+  return {
+    name,
+    slug,
+    brand: faker.company.name(),
+    rating: parseFloat((Math.random() * 1.5 + 3.5).toFixed(1)),
+    reviews: faker.number.int({ min: 1, max: 50 }),
+    image:
+      'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753237435/ecommerce/products/inax-AC-902VN-CW-S32VN-BW1-1090x1090_ziywym.webp',
+    gallery: [
+      'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753237435/ecommerce/products/inax-AC-902VN-CW-S32VN-BW1-1090x1090_ziywym.webp',
+      'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753238578/bon-cau-1-khoi-cao-cap-ttcera-bc005-6001625895793_jsjyb3.jpg',
+      'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753246269/ecommerce/products/bon-cau-1-khoi-cao-cap-ttcera-bc005-6021625895793_klyxwi.jpg',
+      'https://res.cloudinary.com/dh2zcmzaf/image/upload/v1753246281/ecommerce/products/bon-cau-1-khoi-cao-cap-ttcera-bc005-6011625895793_wuktwx.jpg',
+    ],
+    description: faker.commerce.productDescription(),
+    categoryId,
+    price: 0,
+    originalPrice: 0,
+  };
 }
 
 async function main() {
-  const parentMap = {};
+  let productIndex = 0;
 
   for (const [parentName, children] of Object.entries(rawCategories)) {
     const parentSlug = slugify(parentName);
@@ -89,13 +101,26 @@ async function main() {
       },
     });
 
-    parentMap[parentName] = parent;
-
-    // Nếu không có con, vẫn tạo sản phẩm cho parent
     if (children.length === 0) {
-      const products = generateProductsForCategory(parent.id, 6);
-      for (const p of products) {
-        await prisma.product.create({ data: p });
+      for (let i = 0; i < 5; i++) {
+        const productData = generateProduct(parent.id, productIndex++);
+        const product = await prisma.product.create({ data: productData });
+
+        const variants = generateVariants(product.id, faker.number.int({ min: 2, max: 4 }));
+        await prisma.productVariant.createMany({ data: variants });
+
+        // Lấy variant có price thấp nhất
+        const minVariant = variants.reduce((prev, curr) =>
+          curr.price < prev.price ? curr : prev
+        );
+
+        await prisma.product.update({
+          where: { id: product.id },
+          data: {
+            price: minVariant.price,
+            originalPrice: minVariant.originalPrice,
+          },
+        });
       }
     }
 
@@ -115,9 +140,24 @@ async function main() {
         },
       });
 
-      const products = generateProductsForCategory(child.id, 6);
-      for (const p of products) {
-        await prisma.product.create({ data: p });
+      for (let i = 0; i < 5; i++) {
+        const productData = generateProduct(child.id, productIndex++);
+        const product = await prisma.product.create({ data: productData });
+
+        const variants = generateVariants(product.id, faker.number.int({ min: 2, max: 4 }));
+        await prisma.productVariant.createMany({ data: variants });
+
+        const minVariant = variants.reduce((prev, curr) =>
+          curr.price < prev.price ? curr : prev
+        );
+
+        await prisma.product.update({
+          where: { id: product.id },
+          data: {
+            price: minVariant.price,
+            originalPrice: minVariant.originalPrice,
+          },
+        });
       }
     }
   }
@@ -125,7 +165,7 @@ async function main() {
 
 main()
   .then(() => {
-    console.log('✅ Seed hoàn tất.');
+    console.log('✅ Seed hoàn tất (products + variants, giá/giá gốc theo variant rẻ nhất).');
     return prisma.$disconnect();
   })
   .catch((err) => {

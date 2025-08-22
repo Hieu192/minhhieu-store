@@ -4,7 +4,6 @@ import { CartProvider } from '@/context/Cartcontext';
 import Footer from '@/components/layout/Footer';
 import { Inter } from 'next/font/google';
 import type { Metadata } from 'next';
-import CartSidebar from '@/components/cart/CartSlidebar';
 import CompareBar from '@/components/compare/CompareBar';
 import FloatingContactButtons from '@/components/ui/FloatingContactButtons';
 import { getCategories, getCategoriesTree } from '@/lib/api';
@@ -35,7 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <PageWrapper categories={categories} categoriesTree={categoriesTree}>
             {children}
           </PageWrapper>
-          <CartSidebar />
+          {/* <CartSidebar /> */}
           <CompareBar /> {/* 👉 hiển thị bảng so sánh ở mọi trang */}
           <FloatingContactButtons />
           <ToastContainer

@@ -31,23 +31,30 @@ export const uploadFileToCloudinary = async (file: File, folder: string, subId: 
   });
 };
 
-export const deleteFileFromCloudinary = async (url: string, folder: string): Promise<void> => {
+export const deleteFileFromCloudinary = async (url: string): Promise<void> => {
   try {
-    // Regex để trích xuất public_id, bao gồm cả folder
-    const regex = `/ecommerce\/${folder}\/([^\/.]+)/`;
-    const match = url.match(regex);
-
-    if (match && match[1]) {
-      const publicId = `ecommerce/${folder}/${match[1]}`;
-      await cloudinary.uploader.destroy(publicId);
-    } else {
-      console.warn(`Could not extract public_id from URL: ${url}. Skipping deletion.`);
+    // Tách phần sau /ecommerce/
+    const parts = url.split('/ecommerce/');
+    if (parts.length < 2) {
+      console.warn(`Invalid Cloudinary URL: ${url}`);
+      return;
     }
+
+    // Lấy path từ ecommerce/ -> trước dấu chấm cuối cùng (.png, .jpg, ...)
+    const pathWithExt = parts[1].split('?')[0]; // bỏ query string nếu có
+    const pathWithoutExt = pathWithExt.substring(0, pathWithExt.lastIndexOf('.'));
+
+    // Ghép lại publicId đầy đủ
+    const publicId = `ecommerce/${pathWithoutExt}`;
+
+    await cloudinary.uploader.destroy(publicId);
+    console.log(`Deleted file: ${publicId}`);
   } catch (error) {
     console.error('Error deleting file from Cloudinary:', error);
     throw error;
   }
 };
+
 
 
 export const deleteFolderFromCloudinary = async (
@@ -61,13 +68,13 @@ export const deleteFolderFromCloudinary = async (
     // Use the `delete_resources_by_prefix` method to delete all resources in the folder
     // The `folder` option ensures the folder itself is also deleted
     const result = await cloudinary.api.delete_resources_by_prefix(folderPath, {
-    invalidate: true, // Xóa cache CDN
-    all: true, // Thêm tùy chọn này để xóa tất cả các file
+      invalidate: true, // Xóa cache CDN
+      all: true, // Thêm tùy chọn này để xóa tất cả các file
     });
     
     // Nếu bạn muốn xóa cả thư mục rỗng sau khi đã xóa hết file
     // Có thể dùng delete_folder, nhưng api.delete_resources_by_prefix với option 'all' thường đủ
-    await cloudinary.api.delete_folder(folderPath);
+    // await cloudinary.api.delete_folder(folderPath);
 
   } catch (error) {
     console.error('Error deleting folder from Cloudinary:', error);

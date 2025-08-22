@@ -1,5 +1,15 @@
 import { category } from "@prisma/client";
 
+export interface ProductVariant {
+  id: number;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  stock: number | null;
+  attributes: Record<string, string>;
+  image?: string;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -15,4 +25,5 @@ export interface Product {
   description?: string | null;
   attributes?: Record<string, string> | null;
   gallery: string[]; // Thêm trường gallery để chứa ảnh phụ
+  variants: ProductVariant[];
 }

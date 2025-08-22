@@ -4,15 +4,25 @@ import { ShoppingCart, Heart, LineChart, Star, Minus, Plus, CheckCircle, ShieldC
 import { useCart } from '@/context/Cartcontext';
 import { useEffect, useRef, useState } from 'react';
 import { useLocalStorageList } from '@/hooks/useLocalStorageList';
-import { Product } from '@/types/product';
+import { Product, ProductVariant } from '@/types/product';
 import ProductCard from '@/components/product/ProductCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { capitalizeWords, parseContent } from '@/ultis/helps';
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+
+interface CompareItem {
+  productId: number;
+  variantId: number;
+  slug: string;
+  categorySlug: string;
+}
+
 
 export default function ProductDetailClient({ product, breadcrumb }: { product: Product, breadcrumb: { name: string; slug: string }[]; }) {
   const [mainImage, setMainImage] = useState<string>('');
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const thumbnailsRef = useRef<HTMLImageElement[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [newReview, setNewReview] = useState({ name: '', stars: 5, comment: '' });
@@ -45,11 +55,35 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
   const { add: addCompare, has: isCompare } = useLocalStorageList('compare');
   const [quantity, setQuantity] = useState(1);
 
+  const makeKey = (productId: number, variantId?: number) =>
+    variantId ? `${productId}-${variantId}` : `${productId}`;
+
+  const searchParams = useSearchParams();
+  const variantId = searchParams.get('variantId');
+
   useEffect(() => {
     if (product?.image) {
       setMainImage(product.image);
     }
-  }, [product]);
+    if (product.variants && product.variants.length > 0) {
+      let defaultVariant = product.variants[0];
+
+      if (variantId) {
+        const found = product.variants.find(v => v.id === Number(variantId));
+        if (found) defaultVariant = found;
+      } else {
+        defaultVariant = product.variants.reduce((min, v) =>
+          v.price < min.price ? v : min
+        , product.variants[0]);
+      }
+
+      setSelectedVariant(defaultVariant);
+
+      if (defaultVariant.image) {
+        setMainImage(defaultVariant.image);
+      }
+    }
+  }, [product, variantId]);
 
   useEffect(() => {
     if (!product) return;
@@ -111,65 +145,98 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
     setQuantity(prev => prev + 1);
   };
 
+  const handleAddToCart = () => {
+    if (!selectedVariant) return;
+    addToCart(product, quantity, selectedVariant);
+    const key = makeKey(product.id, selectedVariant.id);
+    setSelectedItems(prev => {
+      if (prev.includes(key)) return prev; // tránh trùng
+      return [...prev, key];
+    });
+  };
+
     // Logic mua ngay, ví dụ chuyển hướng đến trang thanh toán
   const handleBuyNow = () => {
-    // 1. Thêm sản phẩm vào giỏ hàng
-    addToCart(product, quantity);
+    if (!selectedVariant) return;
 
-    // 2. Chỉ chọn duy nhất sản phẩm này trong giỏ hàng
-    setSelectedItems([product.id]);
+    // 1. Thêm sản phẩm + variant vào giỏ
+    addToCart(product, quantity, selectedVariant);
+
+    // 2. Chỉ chọn duy nhất sản phẩm này
+    const key = makeKey(product.id, selectedVariant.id);
+    setSelectedItems([key]);
 
     // 3. Chuyển hướng người dùng tới trang thanh toán
     router.push('/cart');
   };
 
-  const addToCompareAndShowBar = () => {
-    if (!product) return;
+const addToCompareAndShowBar = () => {
+  if (!product || !selectedVariant) return;
 
-    const stored = localStorage.getItem('compare');
-    const list: string[] = stored ? JSON.parse(stored) : [];
+  // Danh sách variantId đang chọn
+  const stored = localStorage.getItem('compare');
+  const list: number[] = stored ? JSON.parse(stored) : [];
 
-    // Dữ liệu mở rộng (giữ slug và category slug)
-    const storedDetailsRaw = localStorage.getItem('compareDetails');
-    const storedDetails: { slug: string; categorySlug: string }[] = storedDetailsRaw
-      ? JSON.parse(storedDetailsRaw)
-      : [];
-    const alreadyIncluded = list.includes(product.slug);
+  // Dữ liệu mở rộng: giữ slug + category + product/variant
+  const storedDetailsRaw = localStorage.getItem('compareDetails');
+  const storedDetails: {
+    productId: number;
+    variantId: number;
+    slug: string;
+    categorySlug: string;
+  }[] = storedDetailsRaw ? JSON.parse(storedDetailsRaw) : [];
 
-    // Nếu đã có rồi, chỉ cần hiện CompareBar
-    if (alreadyIncluded) {
-      window.dispatchEvent(new Event('show-compare-bar'));
-      return;
-    }
-    const sameCategory = storedDetails.every(
-      (item) => item.categorySlug === product.category.slug
-    );
+  // Trùng theo variant
+  const alreadyIncluded = list.includes(selectedVariant.id);
 
-    let updated: string[];
-    let updatedDetails: { slug: string; categorySlug: string }[];
-
-    if (list.length === 0 || sameCategory) {
-      // Cùng category hoặc chưa có gì
-      const alreadyIncluded = list.includes(product.slug);
-      if (alreadyIncluded) return;
-
-      updated = [product.slug, ...list].slice(0, 3);
-      updatedDetails = [
-        { slug: product.slug, categorySlug: product.category.slug },
-        ...storedDetails,
-      ].slice(0, 3);
-    } else {
-      // Khác category => reset
-      updated = [product.slug];
-      updatedDetails = [{ slug: product.slug, categorySlug: product.category.slug }];
-    }
-
-    localStorage.setItem('compare', JSON.stringify(updated));
-    localStorage.setItem('compareDetails', JSON.stringify(updatedDetails));
-
+  // Nếu đã có → vẫn ép hiện CompareBar cho chắc
+  if (alreadyIncluded) {
     window.dispatchEvent(new Event('storage'));
     window.dispatchEvent(new Event('show-compare-bar'));
+    return;
+  }
+
+  // Cùng category?
+  const sameCategory = storedDetails.every(
+    (item) => item.categorySlug === product.category.slug
+  );
+
+  let updated: number[];
+  let updatedDetails: {
+    productId: number;
+    variantId: number;
+    slug: string;
+    categorySlug: string;
+  }[];
+
+  const currentItem = {
+    productId: product.id,
+    variantId: selectedVariant.id,
+    slug: product.slug,
+    categorySlug: product.category.slug,
   };
+
+  if (list.length === 0 || sameCategory) {
+    // Cùng category (hoặc chưa có gì) → thêm vào đầu, loại trùng theo variant
+    updated = [selectedVariant.id, ...list.filter((id) => id !== selectedVariant.id)].slice(0, 3);
+    updatedDetails = [
+      currentItem,
+      ...storedDetails.filter((d) => d.variantId !== selectedVariant.id),
+    ].slice(0, 3);
+  } else {
+    // Khác category → reset
+    updated = [selectedVariant.id];
+    updatedDetails = [currentItem];
+  }
+
+  localStorage.setItem('compare', JSON.stringify(updated));               // mảng variantId
+  localStorage.setItem('compareDetails', JSON.stringify(updatedDetails)); // mảng CompareItem mở rộng
+
+  // Đồng bộ + ép bật bar
+  window.dispatchEvent(new Event('storage'));
+  window.dispatchEvent(new Event('show-compare-bar'));
+};
+
 
   const handleThumbnailClick = (img: string, index: number) => {
     if (!product?.gallery) return;
@@ -242,7 +309,35 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
     }}
   />
 
+    const schemaData = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    name: product.name,
+    image: [product.image, ...(product.gallery || [])], // hỗ trợ nhiều ảnh
+    description: product.description,
+    sku: product.id,
+    brand: {
+      "@type": "Brand",
+      name: "MinhHieu" // nếu bạn có brand thì thay vào
+    },
+    offers: {
+      "@type": "Offer",
+      url: `https://yourdomain.com/products/${product.slug}`,
+      priceCurrency: "VND",
+      price: product.price,
+      availability: "https://schema.org/InStock",
+    },
+  };
+
   return (
+    // {/* ✅ JSON-LD Schema để Google đọc */}
+    // <Script
+    //   id="product-schema"
+    //   type="application/ld+json"
+    //   dangerouslySetInnerHTML={{
+    //     __html: JSON.stringify(schemaData),
+    //   }}
+    // />
     <div className="min-h-screen bg-gray-50 py-4 px-4 ">
       <div className="max-w-7xl mx-auto sm:px-6 md:px-8">
           <div className="text-sm md:text-base text-gray-600 mb-4 bg-gray-200 p-3 rounded-md flex flex-nowrap overflow-x-auto">
@@ -322,6 +417,80 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
           <div>
             <h1 className="text-4xl font-bold mb-2">{product.name}</h1>
             <p className="text-base text-gray-500 mb-4">{product.brand}</p>
+
+            {product.variants?.length > 0 && (
+              <div className="mb-4">
+                <p className="font-semibold mb-2">Chọn loại:</p>
+                <div className="flex flex-wrap gap-2">
+                  {product.variants.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setSelectedVariant(v)}
+                      className={`px-3 py-2 rounded border ${
+                        selectedVariant?.id === v.id
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-300'
+                      }`}
+                    >
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ Giá và tồn kho theo variant */}
+            {selectedVariant && (
+              <div className="mb-4 md:flex md:items-end">
+                <p className="text-2xl font-bold text-red-600">
+                  {selectedVariant.price.toLocaleString('vi-VN')}₫
+                </p>
+                {selectedVariant.originalPrice &&
+                  selectedVariant.originalPrice > selectedVariant.price && (
+                    <div className="flex md:ml-4">
+                      <p className="text-sm line-through text-gray-500">
+                        {selectedVariant.originalPrice.toLocaleString('vi-VN')}₫
+                      </p>
+                      <span className="ml-1 text-sm text-blue-500">
+                        (-
+                        {Math.round(
+                          ((selectedVariant.originalPrice - selectedVariant.price) /
+                            selectedVariant.originalPrice) *
+                            100,
+                        )}
+                        %)
+                      </span>
+                    </div>
+                  )}
+                {/* <p className="ml-4 text-sm text-gray-600">
+                  Kho: {selectedVariant.stock ?? 0}
+                </p> */}
+              </div>
+            )}
+
+            {/* ✅ Tạm tính */}
+            {selectedVariant && (
+              <div className="flex items-center gap-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDecrease}
+                    className="p-1 border rounded w-8 h-8 flex items-center justify-center hover:bg-gray-100"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="w-8 text-center">{quantity}</span>
+                  <button
+                    onClick={handleIncrease}
+                    className="p-1 border rounded w-8 h-8 flex items-center justify-center hover:bg-gray-100"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-lg font-semibold text-gray-700">
+                  Tạm tính: {(selectedVariant.price * quantity).toLocaleString('vi-VN')}₫
+                </p>
+              </div>
+            )}
             <div className="flex items-center space-x-2 mb-4">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className={`h-5 w-5 ${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
@@ -329,53 +498,18 @@ export default function ProductDetailClient({ product, breadcrumb }: { product: 
               <span className="text-base text-gray-600">({product.reviews} đánh giá)</span>
             </div>
 
-            <div className="mb-4 md:flex md:items-end">
-              <p className="text-2xl font-bold text-red-600">{product.price.toLocaleString('vi-VN')}₫</p>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <div className="flex  md:ml-4">
-                  <p className="text-sm line-through text-gray-500">{product.originalPrice.toLocaleString('vi-VN')}₫</p>
-                  <span className="ml-1 text-sm text-blue-500">
-                    (-{Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%)
-                  </span>
-                </div>
-              )}
-            </div>
-
             <div className="mb-6">
               {/* <p className="text-gray-700">{product.description}</p> */}
               <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                {Object.entries(product.attributes || {}).map(([key, value]) => (
+                {Object.entries(selectedVariant?.attributes || {}).map(([key, value]) => (
                   <li key={key}><strong>{key}:</strong> {value}</li>
                 ))}
               </ul>
             </div>
 
-            {/* Nút tăng giảm số lượng */}
-            <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-
-              <div className="flex items-center gap-2">
-                <p className="text-base font-semibold text-gray-700">Số lượng:</p>
-                <button
-                  onClick={handleDecrease}
-                  className="p-1 border rounded w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition"
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-                <span className="w-8 text-center">{quantity}</span>
-                <button
-                  onClick={handleIncrease}
-                  className="p-1 border rounded w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </div>
-              <p className="text-lg font-semibold text-gray-700">
-                Tạm tính: {(product.price * quantity).toLocaleString('vi-VN')}₫
-              </p>
-            </div>
 
             <div className="flex flex-wrap gap-2">
-              <button onClick={() => addToCart(product, quantity)} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+              <button onClick={handleAddToCart} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
                 <ShoppingCart className="inline-block mr-2 h-5 w-5" /> Thêm vào giỏ
               </button>
               {/* <button onClick={() => toggleFav(product.id)} className="bg-gray-100 px-4 py-2 rounded hover:bg-gray-200 transition">

@@ -142,31 +142,119 @@ export async function GET(req: Request) {
   }
 }
 
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME!,
-//   api_key: process.env.CLOUDINARY_API_KEY!,
-//   api_secret: process.env.CLOUDINARY_API_SECRET!,
-// });
 
-// // Helper function to upload a single file to Cloudinary
-// const uploadFileToCloudinary = async (file: File): Promise<string> => {
-//   const arrayBuffer = await file.arrayBuffer();
-//   const buffer = Buffer.from(arrayBuffer);
+// export async function POST(req: Request) {
+//   try {
+//     const formData = await req.formData();
 
-//   return new Promise<string>((resolve, reject) => {
-//     const uploadStream = cloudinary.uploader.upload_stream(
-//       { folder: 'ecommerce/products' },
-//       (error, result) => {
-//         if (error || !result) {
-//           reject(error || new Error('Unknown Cloudinary upload error'));
-//         } else {
-//           resolve(result.secure_url);
-//         }
+//     // Lấy dữ liệu từ formData
+//     const name = formData.get('name') as string;
+//     const price = Number(formData.get('price'));
+//     const originalPrice = Number(formData.get('originalPrice'));
+//     const brand = formData.get('brand') as string;
+//     const categoryId = Number(formData.get('categoryId'));
+//     const description = formData.get('description') as string;
+//     const attributes = formData.get('attributes') as string;
+//     const thumbnailFile = formData.get('image') as File;
+//     // Lấy tất cả các file từ trường 'gallery'
+//     const galleryFiles: File[] = formData.getAll('gallery_files') as File[];
+
+
+//     if (!name || !price || !brand || !categoryId || !description || !thumbnailFile) {
+//       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+//     }
+
+//     let parsedAttributes;
+//     try {
+//       parsedAttributes = JSON.parse(attributes);
+//       // Kiểm tra để đảm bảo dữ liệu là một đối tượng JSON hợp lệ
+//       if (typeof parsedAttributes !== 'object' || Array.isArray(parsedAttributes)) {
+//         throw new Error('Attributes must be a valid JSON object.');
 //       }
-//     );
-//     uploadStream.end(buffer);
-//   });
-// };
+//     } catch (e) {
+//       return NextResponse.json({ error: 'Invalid attributes format. Must be a valid JSON object.' }, { status: 400 });
+//     }
+
+//     // 1. Tạo slug và lưu sản phẩm vào database trước để có ID
+//     const slug = slugify(name, {
+//       lower: true,
+//       strict: true,
+//       locale: 'vi',
+//     });
+
+//     // Các trường ảnh tạm thời để tránh lỗi "not found"
+//     const tempImage = "placeholder_image_url"; 
+//     const tempGallery: string[] = [];
+
+//     const product = await prisma.product.create({
+//       data: {
+//         name,
+//         slug,
+//         description,
+//         price,
+//         originalPrice,
+//         image: tempImage, // Gán ảnh tạm thời
+//         brand,
+//         gallery: tempGallery, // Gán mảng ảnh tạm thời
+//         rating: 5,
+//         reviews: 0,
+//         attributes: parsedAttributes,
+//         categoryId,
+//       },
+//     });
+
+//     // Lấy ID của sản phẩm vừa được tạo
+//     const productId = product.id;
+
+//     const thumbnailUrl: string = await uploadFileToCloudinary(thumbnailFile, 'products', productId.toString());
+
+//     const galleryUploadPromises = galleryFiles.map(file => uploadFileToCloudinary(file, 'products', productId.toString()));
+//     const galleryUrls = await Promise.all(galleryUploadPromises);
+
+//     const allImages = [thumbnailUrl, ...galleryUrls];
+
+//     const updatedProduct = await prisma.product.update({
+//       where: { id: productId },
+//       data: {
+//         image: thumbnailUrl,
+//         gallery: allImages,
+//       },
+//     });
+
+//     // thumbnailUrl = uploadResult.secure_url;
+
+//     // Tạo slug từ tên sản phẩm
+//     // const slug = slugify(name, {
+//     //   lower: true,
+//     //   strict: true,
+//     //   locale: 'vi',
+//     // });
+
+
+//     // Lưu sản phẩm vào database
+//     // const product = await prisma.product.create({
+//     //   data: {
+//     //     name,
+//     //     slug,
+//     //     description,
+//     //     price,
+//     //     originalPrice,
+//     //     image: thumbnailUrl,
+//     //     brand,
+//     //     gallery: allImages,
+//     //     rating,
+//     //     reviews,
+//     //     attributes: parsedAttributes,
+//     //     categoryId,
+//     //   },
+//     // });
+
+//     return NextResponse.json(updatedProduct, { status: 201 });
+//   } catch (error) {
+//     console.error('[POST /api/products] error:', error);
+//     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+//   }
+// }
 
 export async function POST(req: Request) {
   try {
@@ -180,47 +268,59 @@ export async function POST(req: Request) {
     const categoryId = Number(formData.get('categoryId'));
     const description = formData.get('description') as string;
     const attributes = formData.get('attributes') as string;
+    const variants = formData.get('variants') as string; // JSON string
     const thumbnailFile = formData.get('image') as File;
-    // Lấy tất cả các file từ trường 'gallery'
     const galleryFiles: File[] = formData.getAll('gallery_files') as File[];
 
-
-    if (!name || !price || !brand || !categoryId || !description || !thumbnailFile) {
+    if (!name || !brand || !categoryId || !description || !thumbnailFile) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    let parsedAttributes;
+    // Parse attributes
+    let parsedAttributes: Record<string, any> = {};
     try {
-      parsedAttributes = JSON.parse(attributes);
-      // Kiểm tra để đảm bảo dữ liệu là một đối tượng JSON hợp lệ
-      if (typeof parsedAttributes !== 'object' || Array.isArray(parsedAttributes)) {
-        throw new Error('Attributes must be a valid JSON object.');
-      }
-    } catch (e) {
-      return NextResponse.json({ error: 'Invalid attributes format. Must be a valid JSON object.' }, { status: 400 });
+      parsedAttributes = attributes ? JSON.parse(attributes) : {};
+    } catch {
+      return NextResponse.json({ error: 'Invalid attributes format. Must be JSON.' }, { status: 400 });
     }
 
-    // 1. Tạo slug và lưu sản phẩm vào database trước để có ID
+    // Parse variants
+    let parsedVariants: any[] = [];
+    try {
+      parsedVariants = variants ? JSON.parse(variants) : [];
+      if (!Array.isArray(parsedVariants)) throw new Error('Variants must be array');
+    } catch {
+      return NextResponse.json({ error: 'Invalid variants format. Must be JSON array.' }, { status: 400 });
+    }
+
+    // Xác định giá cho product
+    let finalPrice = price;
+    let finalOriginalPrice = originalPrice;
+
+    if (parsedVariants.length > 0) {
+      // Nếu có variants thì lấy giá thấp nhất
+      finalPrice = Math.min(...parsedVariants.map(v => Number(v.price)));
+      finalOriginalPrice = Math.min(...parsedVariants.map(v => Number(v.originalPrice)));
+    }
+
+    // Tạo slug
     const slug = slugify(name, {
       lower: true,
       strict: true,
       locale: 'vi',
     });
 
-    // Các trường ảnh tạm thời để tránh lỗi "not found"
-    const tempImage = "placeholder_image_url"; 
-    const tempGallery: string[] = [];
-
+    // Tạo product ban đầu (ảnh tạm)
     const product = await prisma.product.create({
       data: {
         name,
         slug,
         description,
-        price,
-        originalPrice,
-        image: tempImage, // Gán ảnh tạm thời
+        price: finalPrice,
+        originalPrice: finalOriginalPrice,
+        image: 'placeholder_image_url',
         brand,
-        gallery: tempGallery, // Gán mảng ảnh tạm thời
+        gallery: [],
         rating: 5,
         reviews: 0,
         attributes: parsedAttributes,
@@ -228,51 +328,40 @@ export async function POST(req: Request) {
       },
     });
 
-    // Lấy ID của sản phẩm vừa được tạo
     const productId = product.id;
 
-    const thumbnailUrl: string = await uploadFileToCloudinary(thumbnailFile, 'products', productId.toString());
-
-    const galleryUploadPromises = galleryFiles.map(file => uploadFileToCloudinary(file, 'products', productId.toString()));
-    const galleryUrls = await Promise.all(galleryUploadPromises);
+    // Upload ảnh
+    const thumbnailUrl = await uploadFileToCloudinary(thumbnailFile, 'products', productId.toString());
+    const galleryUrls = await Promise.all(
+      galleryFiles.map(file => uploadFileToCloudinary(file, 'products', productId.toString()))
+    );
 
     const allImages = [thumbnailUrl, ...galleryUrls];
 
+    // Nếu có variants thì lưu vào bảng Variant
+    if (parsedVariants.length > 0) {
+      await prisma.productVariant.createMany({
+        data: parsedVariants.map(v => ({
+          name: v.name,
+          price: Number(v.price),
+          originalPrice: Number(v.originalPrice),
+          attributes: v.attributes || {},
+          productId,
+        })),
+      });
+    }
+
+    // Cập nhật lại product với ảnh thật
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {
         image: thumbnailUrl,
         gallery: allImages,
       },
+      include: {
+        variants: true, // trả luôn variants nếu có
+      },
     });
-
-    // thumbnailUrl = uploadResult.secure_url;
-
-    // Tạo slug từ tên sản phẩm
-    // const slug = slugify(name, {
-    //   lower: true,
-    //   strict: true,
-    //   locale: 'vi',
-    // });
-
-
-    // Lưu sản phẩm vào database
-    // const product = await prisma.product.create({
-    //   data: {
-    //     name,
-    //     slug,
-    //     description,
-    //     price,
-    //     originalPrice,
-    //     image: thumbnailUrl,
-    //     brand,
-    //     gallery: allImages,
-    //     rating,
-    //     reviews,
-    //     attributes: parsedAttributes,
-    //     categoryId,
-    //   },
-    // });
 
     return NextResponse.json(updatedProduct, { status: 201 });
   } catch (error) {
